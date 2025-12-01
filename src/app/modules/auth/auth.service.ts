@@ -83,8 +83,37 @@ const resetPassword = async (
   await user!.save();
 };
 
+const getMe = async (decodedToken: JwtPayload) => {
+  // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
+ 
+  const userData = await User.findOne({
+    email: decodedToken.email, // JWT থেকে ইমেল ব্যবহার করে ইউজার খুঁজুন
+    // status: UserStatus.ACTIVE, // যদি UserStatus.ACTIVE আপনার ইউজার মডেলে না থাকে তবে এটি সরিয়ে দিন
+  }).select("-password"); // পাসওয়ার্ড বাদ দিয়ে বাকি সব ডেটা আনুন
+
+  if (!userData) {
+    throw new AppError(htttpStatus.NOT_FOUND, "User not found or is inactive.");
+  }
+
+  // ✅ গুরুত্বপূর্ণ: toObject() ব্যবহার করে Mongoose ডকুমেন্টকে প্লেন JS অবজেক্টে রূপান্তর করুন
+  const userObject = userData.toObject();
+
+  // আপনার login লজিকের মতো অপ্রয়োজনীয় ফিল্ডগুলো সরিয়ে দিন
+  const {
+    skills,
+    averageRating,
+    location,
+    bio,
+    // ... আপনার ইউজার মডেলে থাকা অন্যান্য সাব-ডকুমেন্ট
+    ...rest
+  } = userObject;
+
+  // ফ্রন্টএন্ডের সুবিধার জন্য পুরো ইউজার অবজেক্টটি রিটার্ন করুন
+  return rest;
+};
 export const AuthServices = {
   credentialsLogin,
   getNewAccessToken,
   resetPassword,
+  getMe,
 };

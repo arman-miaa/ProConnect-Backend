@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextFunction, Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
@@ -8,23 +9,21 @@ import AppError from "../../errorHelpers/AppError";
 import { setAuthCookie } from "../../utils/setCookie";
 
 const credentialsLogin = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => { 
-const loginInfo = await AuthServices.credentialsLogin(req.body);
+  async (req: Request, res: Response, next: NextFunction) => {
+    const loginInfo = await AuthServices.credentialsLogin(req.body);
 
     // res.cookie("accessToken",loginInfo.accessToken,{
     //     httpOnly:true,
     //     secure:false,
     // });
 
-  
-
     // res.cookie("refreshToken",loginInfo.refreshToken,{
     //     httpOnly:true,
     //     secure:false,
     // });
 
-      setAuthCookie(res, loginInfo);
-    
+    setAuthCookie(res, loginInfo);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -34,18 +33,18 @@ const loginInfo = await AuthServices.credentialsLogin(req.body);
   }
 );
 const getNewAccessToken = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => { 
-    const refreshToken = req.cookies.refreshToken 
+  async (req: Request, res: Response, next: NextFunction) => {
+    const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) {
-     throw new AppError(httpStatus.BAD_REQUEST,"Refresh Token is missing");
+      throw new AppError(httpStatus.BAD_REQUEST, "Refresh Token is missing");
     }
     const tokenInfo = await AuthServices.getNewAccessToken(refreshToken);
-    
-        // res.cookie("accessToken", tokenInfo.accessToken, {
-        //   httpOnly: true,
-        //   secure: false,
+
+    // res.cookie("accessToken", tokenInfo.accessToken, {
+    //   httpOnly: true,
+    //   secure: false,
     // });
-    setAuthCookie(res,tokenInfo)
+    setAuthCookie(res, tokenInfo);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -56,31 +55,30 @@ const getNewAccessToken = catchAsync(
   }
 );
 
-const logout = catchAsync(async (req: Request, res: Response, next: NextFunction) => { 
+const logout = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // res.clearCookie("accessToken", {
+    //   httpOnly: true,
+    //   secure: false,
+    //   sameSite: "lax",
+    // });
+    // res.clearCookie("refreshToken", {
+    //   httpOnly: true,
+    //   secure: false,
+    //   sameSite: "lax",
+    // });
+    const isProduction = process.env.NODE_ENV === "production";
 
-  // res.clearCookie("accessToken", {
-  //   httpOnly: true,
-  //   secure: false,
-  //   sameSite: "lax",
-  // });
-  // res.clearCookie("refreshToken", {
-  //   httpOnly: true,
-  //   secure: false,
-  //   sameSite: "lax",
-  // });
-  const isProduction = process.env.NODE_ENV === "production";
-
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-  });
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-  });
-
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -91,15 +89,15 @@ const logout = catchAsync(async (req: Request, res: Response, next: NextFunction
   }
 );
 
-const resetPassword = catchAsync(async (req: Request, res: Response, next: NextFunction) => { 
+const resetPassword = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const newPassword = req.body.newPassword;
+    const oldPassword = req.body.oldPassword;
+    const decodedToken = req.user;
 
-const newPassword = req.body.newPassword;
-  const oldPassword = req.body.oldPassword;
-  const decodedToken = req.user;
+    await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
 
-   await AuthServices.resetPassword(oldPassword, newPassword,decodedToken)
-  
-sendResponse(res, {
+    sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Password chenged successfully",
@@ -107,11 +105,26 @@ sendResponse(res, {
     });
   }
 );
+const getMe = catchAsync(
+  async (req: Request & { user?: any }, res: Response) => {
+    const decodedToken = req.user;
+    
 
+    const result = await AuthServices.getMe(decodedToken);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "User retrieved successfully",
+      data: result,
+    });
+  }
+);
 
 export const AuthControllers = {
   credentialsLogin,
   getNewAccessToken,
   logout,
   resetPassword,
+  getMe,
 };
