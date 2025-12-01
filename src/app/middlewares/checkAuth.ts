@@ -4,15 +4,17 @@ import AppError from "../errorHelpers/AppError";
 import httpStaut from "http-status-codes";
 import { envVars } from "../config/env";
 import { JwtPayload } from "jsonwebtoken";
-import { UserModel } from "../modules/user/user.model";
+
 import { IsActiv } from "../modules/user/user.interface";
 import htttpStatus from "http-status-codes";
+import { User } from "../modules/user/user.model";
 
 export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const accessToken = req.headers.authorization;
+      const accessToken =
+        req.cookies["accessToken"] || req.headers.authorization;
       if (!accessToken) {
         throw new AppError(httpStaut.UNAUTHORIZED, "No token provided");
       }
@@ -25,7 +27,7 @@ export const checkAuth =
       ) as JwtPayload;
 
 
-      const isUserExist = await UserModel.findOne({
+      const isUserExist = await User.findOne({
         email: verifiedToken.email,
       });
       if (!isUserExist) {

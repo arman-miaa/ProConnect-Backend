@@ -2,9 +2,10 @@ import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../config/env";
 import AppError from "../errorHelpers/AppError";
 import { IsActiv, IUser } from "../modules/user/user.interface";
-import { UserModel } from "../modules/user/user.model";
+
 import { generateToken, verifyToken } from "./jwt";
 import htttpStatus from "http-status-codes";
+import { User } from "../modules/user/user.model";
 
 export const createUserTokens = (user: Partial<IUser>) => {
         const jwtPayload = {
@@ -33,7 +34,7 @@ export const createNewAccessTokenWithRefreshToken = async(refreshToken: string) 
         envVars.JWT_REFRESH_SECRET
       ) as JwtPayload;
 
-      const isUserExist = await UserModel.findOne({
+      const isUserExist = await User.findOne({
         email: verifiedRefreshToken.email,
       });
       if (!isUserExist) {

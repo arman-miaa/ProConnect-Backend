@@ -21,7 +21,7 @@ app.get("/", (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: "✨ Welcome to Favorneed Backend API! 🚀",
+      message: "✨ Welcome to ProConnect  Backend API! 🚀",
     });
 })
 

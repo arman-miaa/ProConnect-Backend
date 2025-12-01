@@ -1,9 +1,10 @@
 import {  Router } from "express";
 import { UserControllers } from "./user.controller";
 import { validateRequest } from "../../middlewares/validateRequrest";
-import {  AdminCreateSchema, FinalRegistrationSchema, FinalUpdateSchema,  } from "./user.validation";
+
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "./user.interface";
+import { registerSchema } from "./user.validation";
 
 
 
@@ -14,30 +15,23 @@ const router = Router();
 
 router.post(
   "/register",
-  validateRequest(FinalRegistrationSchema),
+  validateRequest(registerSchema),
   UserControllers.createUser
 );
 
 router.post(
   "/create-admin",
   checkAuth(Role.SUPER_ADMIN),
-  validateRequest(AdminCreateSchema),
+  // validateRequest(AdminCreateSchema),
   UserControllers.createAdmin
 );
 
 router.patch(
   "/update-profile",
  
-  checkAuth(
-    Role.PERSONAL,
-    Role.DOCTOR,
-    Role.PUBLIC_FIGURE,
-    Role.ORGANIZATION,
-    Role.SUPER_ADMIN,
-    Role.ADMIN
-  ),
 
-  validateRequest(FinalUpdateSchema),
+
+  // validateRequest(FinalUpdateSchema),
   UserControllers.updateUser
 );
 
@@ -49,7 +43,7 @@ router.patch(
 
 router.get(
   "/all-users",
-  checkAuth(Role.ADMIN,Role.SUPER_ADMIN,Role.PERSONAL),
+  checkAuth(Role.ADMIN,Role.SUPER_ADMIN),
   UserControllers.getAllUsers
 );
 

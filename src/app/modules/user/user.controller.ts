@@ -39,12 +39,12 @@ const updateUser = catchAsync(
     const decodedToken = req.user; // checkAuth মিডলওয়্যার থেকে আসা তথ্য
     const updateData = req.body;
 // console.log("user id",userId, "token",decodedToken,"updateData",updateData);
-    const result = await UserServcies.updateUser(
-      userId,
-      updateData,
-      decodedToken
-    ); // ✅ decodedToken পাস করা হলো
-
+    // const result = await UserServcies.updateUser(
+    //   userId,
+    //   updateData,
+    //   decodedToken
+    // );
+const result = {}
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -61,8 +61,8 @@ const adminUpdateUser = catchAsync(async (req: Request, res: Response, next: Nex
   const decodedToken = req.user; // Admin token info
   const updateData = req.body;
 
-  const result = await UserServcies.updateUser(userId, updateData, decodedToken);
-
+  // const result = await UserServcies.updateUser(userId, updateData, decodedToken);
+const result = {};
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
