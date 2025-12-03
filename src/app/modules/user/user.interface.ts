@@ -32,7 +32,7 @@ export interface IUser {
   skills?: string[];
   profilePicture?: string;
   averageRating?: number;
-  phone?: string;
+  contactNumber?: string;
 
   createdAt?: Date;
   updatedAt?: Date;

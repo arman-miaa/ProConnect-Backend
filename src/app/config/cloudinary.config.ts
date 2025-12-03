@@ -53,9 +53,10 @@ export const uploadBufferToCloudinary = async (
 
 export const deleteImageFromCLoudinary = async (url: string) => {
   try {
-    //https://res.cloudinary.com/djzppynpk/image/upload/v1753126572/ay9roxiv8ue-1753126570086-download-2-jpg.jpg.jpg
+    // https://res.cloudinary.com/djzppynpk/image/upload/v1753126572/pdf/abc-123.jpg
 
-    const regex = /\/v\d+\/(.*?)\.(jpg|jpeg|png|gif|webp)$/i;
+    // FIXED REGEX → folder সহ পুরো public_id ধরবে
+    const regex = /\/upload\/(?:v\d+\/)?(.+?)\.[a-zA-Z0-9]+$/;
 
     const match = url.match(regex);
 
@@ -63,7 +64,10 @@ export const deleteImageFromCLoudinary = async (url: string) => {
 
     if (match && match[1]) {
       const public_id = match[1];
+
+      // pdf/abc-123 এর মতো হবে
       await cloudinary.uploader.destroy(public_id);
+
       console.log(`File ${public_id} is deleted from cloudinary`);
     }
   } catch (error: any) {

@@ -72,11 +72,11 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: undefined,
     },
-    phone: {
+    contactNumber: {
       type: String,
       trim: true,
       default: "",
-      match: [/^\+?[0-9]{7,15}$/, "Invalid phone number"],
+      match: [/^\+?[0-9]{7,15}$/, "Invalid contactNumber number"],
     },
   },
   { timestamps: true }

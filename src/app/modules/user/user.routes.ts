@@ -28,7 +28,7 @@ router.post(
 );
 
 router.patch(
-  "/:id",
+  "/update-profile",
 
   checkAuth(...Object.values(Role)),
   multerUpload.single("file"),

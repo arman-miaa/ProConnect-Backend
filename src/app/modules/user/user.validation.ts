@@ -19,12 +19,12 @@ export const registerSchema = z.object({
   skills: z.array(z.string()).optional(),
 
   address: z.string().optional(),
-  phone: z
+  contactNumber: z
     .string()
     .optional()
     .default("")
     .refine((val) => val === "" || /^\+?[0-9]{7,15}$/.test(val), {
-      message: "Invalid phone number",
+      message: "Invalid contact  number",
     }),
   profilePicture: z.string().url().optional(),
 });
@@ -36,7 +36,7 @@ export const registerSchema = z.object({
      bio: true,
      skills: true,
      address: true,
-     phone: true,
+     contactNumber: true,
      profilePicture: true,
    })
    .partial() // PICK করার পরে সমস্ত ফিল্ডকে ঐচ্ছিক করা হলো
