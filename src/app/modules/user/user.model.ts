@@ -70,8 +70,12 @@ const userSchema = new mongoose.Schema(
     },
     averageRating: {
       type: Number,
-      default: undefined,
+      default: function () {
+        // শুধুমাত্র SELLER-এর জন্য 0, অন্যদের undefined
+        return this.role === "SELLER" ? 0 : undefined;
+      },
     },
+
     contactNumber: {
       type: String,
       trim: true,
