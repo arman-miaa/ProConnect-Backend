@@ -8,6 +8,7 @@ import { MessageServices } from "./message.service";
 const createMessage = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
+ 
 
     const newMessage = await MessageServices.createMessage(payload);
 

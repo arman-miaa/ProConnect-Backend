@@ -5,9 +5,10 @@ import bcryptjs from "bcryptjs";
 
 
 import { envVars } from "../../config/env";
-import { Role } from "./user.interface";
+import { IUser, Role } from "./user.interface";
 
 import { User } from "./user.model";
+import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 
 const createUser = async (payload: any) => {
   const { email, password, role, ...rest } = payload;
@@ -114,12 +115,32 @@ const getAllUsers = async () => {
     meta: { total: totalUsers },
   };
 };
-const updateUser = async () => {
 
-  return {
-   
-  };
+
+const updateUser = async (id: string, payload: Partial<IUser>) => {
+  const existingUser = await User.findById(id);
+  if (!existingUser) {
+    throw new Error("User not found.");
+  }
+
+ 
+
+
+  const updatedDivision = await User.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (payload.profilePicture && existingUser.profilePicture) {
+    await deleteImageFromCLoudinary(existingUser.profilePicture);
+  }
+
+  return updatedDivision;
 };
+
+
+
+
 
 export const UserServcies = {
   createUser,

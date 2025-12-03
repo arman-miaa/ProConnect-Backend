@@ -9,8 +9,11 @@ export const validateRequest =
         req.body.role = req.user.role;
       }
 
+      // req.body =JSON.parse(req.body.data || {}) || req.body
+      if (req.body.data) {
+        req.body = JSON.parse(req.body.data);
+      }
       req.body = await zodSchema.parseAsync(req.body);
-    
 
       next();
     } catch (err) {

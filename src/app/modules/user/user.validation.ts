@@ -29,9 +29,27 @@ export const registerSchema = z.object({
   profilePicture: z.string().url().optional(),
 });
 
-  // Conditional Validation For SELLER
+ export const updateUserSchema = registerSchema
+   .pick({
+     name: true,
+     title: true,
+     bio: true,
+     skills: true,
+     address: true,
+     phone: true,
+     profilePicture: true,
+   })
+   .partial() // PICK করার পরে সমস্ত ফিল্ডকে ঐচ্ছিক করা হলো
+   .extend({
+     // কাস্টম ফিল্ড: প্রোফাইল পিকচার ডিলিট করার জন্য
+     deleteProfilePicture: z.boolean().optional(),
+
+     // কাস্টম ফিল্ড: Postman form-data থেকে আসা JSON স্ট্রিং হ্যান্ডেল করার জন্য
+     data: z.any().optional(),
+   });
   
 
 module.exports = {
   registerSchema,
+  updateUserSchema
 };

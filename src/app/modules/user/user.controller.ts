@@ -6,6 +6,7 @@ import httpStatus from "http-status-codes";
 import { UserServcies } from "./user.services";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
+import { IUser } from "./user.interface";
 
 const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -35,17 +36,13 @@ const createAdmin = catchAsync(
 
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    // req.user এ থাকা decoded user info পাস করা হলো
-    const userId = req.user.userId;
-    const decodedToken = req.user; // checkAuth মিডলওয়্যার থেকে আসা তথ্য
-    const updateData = req.body;
-// console.log("user id",userId, "token",decodedToken,"updateData",updateData);
-    // const result = await UserServcies.updateUser(
-    //   userId,
-    //   updateData,
-    //   decodedToken
-    // );
-const result = {}
+    const id = req.user.userId 
+    // console.log(id,"id",req.body);
+   const payload: IUser = {
+     ...req.body,
+     profilePicture: req.file?.path,
+   };
+   const result = await UserServcies.updateUser(id, payload);
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

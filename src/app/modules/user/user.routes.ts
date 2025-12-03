@@ -4,7 +4,8 @@ import { validateRequest } from "../../middlewares/validateRequrest";
 
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "./user.interface";
-import { registerSchema } from "./user.validation";
+import { registerSchema, updateUserSchema } from "./user.validation";
+import { multerUpload } from "../../config/multer.config";
 
 
 
@@ -27,11 +28,11 @@ router.post(
 );
 
 router.patch(
-  "/update-profile",
- 
+  "/:id",
 
-
-  // validateRequest(FinalUpdateSchema),
+  checkAuth(...Object.values(Role)),
+  multerUpload.single("file"),
+  validateRequest(updateUserSchema),
   UserControllers.updateUser
 );
 
