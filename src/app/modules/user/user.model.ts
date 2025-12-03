@@ -24,8 +24,8 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      minlength: 6, // নিরাপত্তার জন্য
-      select: false, // পাসওয়ার্ড ডিফল্টভাবে কোয়েরিতে আসবে না
+      minlength: 6,
+      select: false,
     },
     role: {
       type: String,
@@ -38,36 +38,50 @@ const userSchema = new mongoose.Schema(
     },
     is_active: {
       type: String,
-      enum: Object.values(IsActiv), // IsActiv Enum থেকে ভ্যালু নেওয়া হলো
-      default: IsActiv.ACTIVE, // ডিফল্টভাবে ACTIVE সেট করা হলো
+      enum: Object.values(IsActiv),
+      default: IsActiv.ACTIVE,
       required: true,
     },
-    // সেলারের জন্য অতিরিক্ত ফিল্ড
-    location: {
+
+    // seller–specific fields
+    address: {
       type: String,
       trim: true,
+      default: undefined,
     },
     bio: {
       type: String,
       trim: true,
+      default: undefined,
+    },
+    title: {
+      type: String,
+      trim: true,
+      default: undefined,
     },
     skills: {
-      type: [String], // Array of Strings
-      default: [],
+      type: [String],
+      default: undefined,
     },
+
     profilePicture: {
       type: String,
       default: "",
     },
     averageRating: {
       type: Number,
-      default: 0,
+      default: undefined,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+      match: [/^\+?[0-9]{7,15}$/, "Invalid phone number"],
     },
   },
-  {
-    timestamps: true, // createdAt, updatedAt যোগ করবে
-  }
+  { timestamps: true }
 );
+
 
 // ভবিষ্যতে পাসওয়ার্ড হ্যাশিং (Hashing) এখানে যুক্ত করা হবে
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import AppError from "../../errorHelpers/AppError";
@@ -32,23 +33,47 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
     throw new AppError(htttpStatus.UNAUTHORIZED, "Password is incorrect");
   }
 
-  const userObject = isUserExist.toObject();
+  const userObject: any = isUserExist.toObject(); // any হিসাবে ডিক্লেয়ার করা হয়েছে
 
-  const {
-    password: pass,
-    skills,
-    averageRating,
-    location,
-    bio,
-    ...rest
-  } = userObject;
+  // 💡 FIX: রোল অনুযায়ী অপ্রয়োজনীয় ফিল্ড বাদ দেওয়া
+  if (userObject.role === "ADMIN" || userObject.role === "SUPER_ADMIN") {
+    delete userObject.skills;
+    delete userObject.averageRating;
+    delete userObject.address;
+    delete userObject.bio;
+    delete userObject.title;
+  }
+  // CLIENT দের জন্য অপ্রয়োজনীয় ফিল্ড বাদ
+  if (userObject.role === "CLIENT") {
+    delete userObject.skills;
+    delete userObject.averageRating;
+    delete userObject.title;
+    delete userObject.bio;
+  }
+
+  // ✅ নতুন লজিক: CLIENT/SELLER দের জন্য অনুপস্থিত প্রোফাইল ফিল্ড যুক্ত করা
+  if (userObject.role !== "ADMIN" && userObject.role !== "SUPER_ADMIN") {
+    if (typeof userObject.address === "undefined") {
+      userObject.address = "";
+    }
+       if (typeof userObject.title === "undefined") {
+         userObject.title = ""; // নতুন ফিল্ড
+       }
+    if (typeof userObject.bio === "undefined") {
+      userObject.bio = "";
+    }
+    // প্রয়োজনে অন্যান্য প্রোফাইল ফিল্ড (যেমন location) এখানে যুক্ত করা যেতে পারে
+  }
+
+  // এখন শুধু password এবং __v বাদ দিয়ে বাকিটা rest এ রাখব
+  const { password: pass, __v, ...rest } = userObject; // rest object is sanitized
 
   const userTokens = createUserTokens(rest);
 
   return {
     accessToken: userTokens.accessToken,
     refreshToken: userTokens.refreshToken,
-    user: rest, // rest এ শুধু প্রয়োজনীয় ডেটা থাকবে
+    user: rest, // rest এ এখন অ্যাডমিনদের জন্য পরিষ্কার ডেটা থাকবে
   };
 };
 
@@ -85,7 +110,7 @@ const resetPassword = async (
 
 const getMe = async (decodedToken: JwtPayload) => {
   // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
- 
+
   const userData = await User.findOne({
     email: decodedToken.email, // JWT থেকে ইমেল ব্যবহার করে ইউজার খুঁজুন
     // status: UserStatus.ACTIVE, // যদি UserStatus.ACTIVE আপনার ইউজার মডেলে না থাকে তবে এটি সরিয়ে দিন
@@ -96,20 +121,46 @@ const getMe = async (decodedToken: JwtPayload) => {
   }
 
   // ✅ গুরুত্বপূর্ণ: toObject() ব্যবহার করে Mongoose ডকুমেন্টকে প্লেন JS অবজেক্টে রূপান্তর করুন
-  const userObject = userData.toObject();
+  const userObject: any = userData.toObject(); // any হিসাবে ডিক্লেয়ার করা হয়েছে যাতে পরে ডিলিট করা যায়
 
-  // আপনার login লজিকের মতো অপ্রয়োজনীয় ফিল্ডগুলো সরিয়ে দিন
-  const {
-    skills,
-    averageRating,
-    location,
-    bio,
-    // ... আপনার ইউজার মডেলে থাকা অন্যান্য সাব-ডকুমেন্ট
-    ...rest
-  } = userObject;
+  // 💡 সংশোধন: রোল অনুযায়ী অপ্রয়োজনীয় ফিল্ড বাদ দেওয়া
+  if (userObject.role === "ADMIN" || userObject.role === "SUPER_ADMIN") {
+    // অ্যাডমিনদের জন্য অপ্রয়োজনীয় ফিল্ড বাদ দেওয়া
+    delete userObject.skills;
+    delete userObject.averageRating;
+    delete userObject.address;
+    delete userObject.bio;
+    delete userObject.title;
+  }
 
-  // ফ্রন্টএন্ডের সুবিধার জন্য পুরো ইউজার অবজেক্টটি রিটার্ন করুন
-  return rest;
+  // CLIENT দের জন্য অপ্রয়োজনীয় ফিল্ড বাদ
+  if (userObject.role === "CLIENT") {
+    delete userObject.skills;
+    delete userObject.averageRating;
+    delete userObject.title;
+    delete userObject.bio;
+  
+  }
+
+  // ✅ নতুন লজিক: CLIENT/SELLER দের জন্য অনুপস্থিত প্রোফাইল ফিল্ড যুক্ত করা
+  if (userObject.role !== "ADMIN" && userObject.role !== "SUPER_ADMIN") {
+    if (typeof userObject.address === "undefined") {
+      userObject.address = "";
+    }
+    if (typeof userObject.title === "undefined") {
+      userObject.title = ""; // নতুন ফিল্ড
+    }
+    if (typeof userObject.bio === "undefined") {
+      userObject.bio = "";
+    }
+    // প্রয়োজনে অন্যান্য প্রোফাইল ফিল্ড (যেমন location) এখানে যুক্ত করা যেতে পারে
+  }
+
+  // Mongoose ভার্সন কী বাদ দেওয়া (সব রোলের জন্য)
+  delete userObject.__v;
+
+  // ফ্রন্টএন্ডের সুবিধার জন্য password এবং __v ছাড়া পুরো ইউজার অবজেক্টটি রিটার্ন করুন
+  return userObject;
 };
 export const AuthServices = {
   credentialsLogin,

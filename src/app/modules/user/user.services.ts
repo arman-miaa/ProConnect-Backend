@@ -10,7 +10,7 @@ import { Role } from "./user.interface";
 import { User } from "./user.model";
 
 const createUser = async (payload: any) => {
-  const { email, password,  role, ...rest } = payload;
+  const { email, password, role, ...rest } = payload;
 
   // check existing user
   const isUserExist = await User.findOne({ email });
@@ -19,26 +19,47 @@ const createUser = async (payload: any) => {
   }
 
   // hash password
-  const hashedPassword = await bcryptjs.hash(password as string, Number(envVars.BCRYPT_SALT_ROUND));
+  const hashedPassword = await bcryptjs.hash(
+    password,
+    Number(envVars.BCRYPT_SALT_ROUND)
+  );
 
-  // create user
-  const user = await User.create({
+  const userData: any = {
     email,
     password: hashedPassword,
     role,
-    
     name: rest.name,
-  
-    picture: rest.picture,
-  });
-
-
-  const result = {
-    ...user.toObject(),
-    
   };
-  return result;
+
+  // ======================================
+  // 🔥 ROLE BASED FIELD LOGIC
+  // ======================================
+
+  if (role === "SELLER") {
+    userData.address = rest.address || "";
+    userData.title = rest.title || "";
+    userData.bio = rest.bio || "";
+    userData.skills = rest.skills || [];
+  }
+
+if (role === "CLIENT") {
+  userData.address = rest.address || "";
+
+  // Make sure CLIENT never gets skills/title/bio
+  delete userData.skills;
+  delete userData.title;
+  delete userData.bio;
+}
+
+
+  const newUser = await User.create(userData);
+
+  const userObject: any = newUser.toObject();
+  delete userObject.password;
+
+  return userObject;
 };
+
 
 
 

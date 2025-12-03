@@ -9,6 +9,7 @@ import { sendResponse } from "../../utils/sendResponse";
 
 const createUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
+
     const user = await UserServcies.createUser(req.body);
 
     sendResponse(res, {
