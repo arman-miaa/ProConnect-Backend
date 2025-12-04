@@ -16,6 +16,10 @@ const validateRequest = (zodSchema) => (req, res, next) => __awaiter(void 0, voi
         if ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) {
             req.body.role = req.user.role;
         }
+        // req.body =JSON.parse(req.body.data || {}) || req.body
+        if (req.body.data) {
+            req.body = JSON.parse(req.body.data);
+        }
         req.body = yield zodSchema.parseAsync(req.body);
         next();
     }

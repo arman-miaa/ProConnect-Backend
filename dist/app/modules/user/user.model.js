@@ -23,8 +23,8 @@ const userSchema = new mongoose_1.default.Schema({
     password: {
         type: String,
         required: true,
-        minlength: 6, // নিরাপত্তার জন্য
-        select: false, // পাসওয়ার্ড ডিফল্টভাবে কোয়েরিতে আসবে না
+        minlength: 6,
+        select: false,
     },
     role: {
         type: String,
@@ -37,22 +37,29 @@ const userSchema = new mongoose_1.default.Schema({
     },
     is_active: {
         type: String,
-        enum: Object.values(user_interface_1.IsActiv), // IsActiv Enum থেকে ভ্যালু নেওয়া হলো
-        default: user_interface_1.IsActiv.ACTIVE, // ডিফল্টভাবে ACTIVE সেট করা হলো
+        enum: Object.values(user_interface_1.IsActiv),
+        default: user_interface_1.IsActiv.ACTIVE,
         required: true,
     },
-    // সেলারের জন্য অতিরিক্ত ফিল্ড
-    location: {
+    // seller–specific fields
+    address: {
         type: String,
         trim: true,
+        default: undefined,
     },
     bio: {
         type: String,
         trim: true,
+        default: undefined,
+    },
+    title: {
+        type: String,
+        trim: true,
+        default: undefined,
     },
     skills: {
-        type: [String], // Array of Strings
-        default: [],
+        type: [String],
+        default: undefined,
     },
     profilePicture: {
         type: String,
@@ -60,10 +67,17 @@ const userSchema = new mongoose_1.default.Schema({
     },
     averageRating: {
         type: Number,
-        default: 0,
+        default: function () {
+            // শুধুমাত্র SELLER-এর জন্য 0, অন্যদের undefined
+            return this.role === "SELLER" ? 0 : undefined;
+        },
     },
-}, {
-    timestamps: true, // createdAt, updatedAt যোগ করবে
-});
+    contactNumber: {
+        type: String,
+        trim: true,
+        default: "",
+        match: [/^\+?[0-9]{7,15}$/, "Invalid contactNumber number"],
+    },
+}, { timestamps: true });
 // ভবিষ্যতে পাসওয়ার্ড হ্যাশিং (Hashing) এখানে যুক্ত করা হবে
 exports.User = mongoose_1.default.model("User", userSchema);

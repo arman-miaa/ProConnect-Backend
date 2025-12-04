@@ -37,6 +37,7 @@ const createAdmin = catchAsync(
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const id = req.user.userId 
+ 
     // console.log(id,"id",req.body);
    const payload: IUser = {
      ...req.body,

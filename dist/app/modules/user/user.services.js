@@ -31,6 +31,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const env_1 = require("../../config/env");
 const user_interface_1 = require("./user.interface");
 const user_model_1 = require("./user.model");
+const cloudinary_config_1 = require("../../config/cloudinary.config");
 const createUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password, role } = payload, rest = __rest(payload, ["email", "password", "role"]);
     // check existing user
@@ -40,16 +41,32 @@ const createUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     }
     // hash password
     const hashedPassword = yield bcryptjs_1.default.hash(password, Number(env_1.envVars.BCRYPT_SALT_ROUND));
-    // create user
-    const user = yield user_model_1.User.create({
+    const userData = {
         email,
         password: hashedPassword,
         role,
         name: rest.name,
-        picture: rest.picture,
-    });
-    const result = Object.assign({}, user.toObject());
-    return result;
+    };
+    // ======================================
+    // 🔥 ROLE BASED FIELD LOGIC
+    // ======================================
+    if (role === "SELLER") {
+        userData.address = rest.address || "";
+        userData.title = rest.title || "";
+        userData.bio = rest.bio || "";
+        userData.skills = rest.skills || [];
+    }
+    if (role === "CLIENT") {
+        userData.address = rest.address || "";
+        // Make sure CLIENT never gets skills/title/bio
+        delete userData.skills;
+        delete userData.title;
+        delete userData.bio;
+    }
+    const newUser = yield user_model_1.User.create(userData);
+    const userObject = newUser.toObject();
+    delete userObject.password;
+    return userObject;
 });
 const createAdmin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password, name, profilePicture } = payload;
@@ -83,8 +100,19 @@ const getAllUsers = () => __awaiter(void 0, void 0, void 0, function* () {
         meta: { total: totalUsers },
     };
 });
-const updateUser = () => __awaiter(void 0, void 0, void 0, function* () {
-    return {};
+const updateUser = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const existingUser = yield user_model_1.User.findById(id);
+    if (!existingUser) {
+        throw new Error("User not found.");
+    }
+    const updatedDivision = yield user_model_1.User.findByIdAndUpdate(id, payload, {
+        new: true,
+        runValidators: true,
+    });
+    if (payload.profilePicture && existingUser.profilePicture) {
+        yield (0, cloudinary_config_1.deleteImageFromCLoudinary)(existingUser.profilePicture);
+    }
+    return updatedDivision;
 });
 exports.UserServcies = {
     createUser,

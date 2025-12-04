@@ -11,7 +11,7 @@ const messageSchema = new mongoose_1.default.Schema({
     firstName: { type: String, required: true, trim: true, minlength: 2 },
     lastName: { type: String, required: true, trim: true, minlength: 2 },
     email: { type: String, required: true, trim: true, lowercase: true },
-    phone: { type: String, default: null },
+    contactNumber: { type: String, default: null },
     issueType: {
         type: String,
         required: true,

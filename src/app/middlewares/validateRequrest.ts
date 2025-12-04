@@ -3,7 +3,8 @@ import { ZodTypeAny } from "zod";
 
 export const validateRequest =
   (zodSchema: ZodTypeAny) =>
-  async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response, next: NextFunction) => {
+  
     try {
       if (req.user?.role) {
         req.body.role = req.user.role;

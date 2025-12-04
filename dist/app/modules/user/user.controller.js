@@ -37,17 +37,11 @@ const createAdmin = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(v
     });
 }));
 const updateUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    // req.user এ থাকা decoded user info পাস করা হলো
-    const userId = req.user.userId;
-    const decodedToken = req.user; // checkAuth মিডলওয়্যার থেকে আসা তথ্য
-    const updateData = req.body;
-    // console.log("user id",userId, "token",decodedToken,"updateData",updateData);
-    // const result = await UserServcies.updateUser(
-    //   userId,
-    //   updateData,
-    //   decodedToken
-    // );
-    const result = {};
+    var _a;
+    const id = req.user.userId;
+    // console.log(id,"id",req.body);
+    const payload = Object.assign(Object.assign({}, req.body), { profilePicture: (_a = req.file) === null || _a === void 0 ? void 0 : _a.path });
+    const result = yield user_services_1.UserServcies.updateUser(id, payload);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,

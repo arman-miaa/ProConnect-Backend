@@ -1,0 +1,122 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import httpStatus from "http-status-codes";
+
+import { Service } from "./service.model";
+import { IService } from "./service.interface";
+import AppError from "../../errorHelpers/AppError";
+
+// 1. সার্ভিস তৈরি (বিক্রেতা কর্তৃক)
+const createService = async (
+  sellerId: string,
+  payload: Partial<IService> 
+) => {
+  const serviceData = {
+    ...payload,
+    sellerId,
+  
+  };
+  const newService = await Service.create(serviceData);
+  return newService;
+};
+
+// 2. সার্ভিস তালিকা দেখা (সমস্ত ব্যবহারকারী)
+const getAllServices = async (query: any) => {
+  const { category, search, minPrice, maxPrice, ...filters } = query;
+  const filter: any = { isDeleted: false, status: "LIVE" };
+
+  if (category) {
+    filter.category = category;
+  }
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+  if (search) {
+    // দ্রুত খোঁজার জন্য text index ব্যবহার
+    filter.$text = { $search: search };
+  }
+
+  // সেলারের নাম ও রেটিং পপুলেট করা হলো
+  const services = await Service.find(filter).populate(
+    "sellerId",
+    "name profilePicture averageRating"
+  );
+  return services;
+};
+
+// 3. একটি নির্দিষ্ট সার্ভিস দেখা
+const getServiceById = async (id: string) => {
+  const service = await Service.findById(id).populate(
+    "sellerId",
+    "name email profilePicture averageRating bio"
+  );
+  if (!service || service.isDeleted) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
+  }
+  return service;
+};
+
+// 4. সার্ভিস আপডেট করা (বিক্রেতা কর্তৃক)
+const updateService = async (
+  serviceId: string,
+  sellerId: string,
+  updateData: Partial<IService>
+) => {
+  const service = await Service.findById(serviceId);
+
+  if (!service || service.isDeleted) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
+  }
+
+  // নিশ্চিত করা যে শুধুমাত্র সেলারই তার সার্ভিস আপডেট করতে পারে
+  if (service.sellerId.toString() !== sellerId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to update this service."
+    );
+  }
+
+  // ⚠️ যদি ইমেজ পরিবর্তন হয়, পুরনো ইমেজ ক্লাউডিনারি থেকে ডিলেট করার লজিক এখানে যুক্ত হবে
+  // যেমন: if (updateData.images) { deleteOldImages(service.images); }
+
+  const updatedService = await Service.findByIdAndUpdate(
+    serviceId,
+    updateData,
+    { new: true, runValidators: true }
+  );
+  return updatedService;
+};
+
+// 5. সার্ভিস ডিলেট করা (সফট ডিলেট - বিক্রেতা কর্তৃক)
+const deleteService = async (serviceId: string, sellerId: string) => {
+  const service = await Service.findById(serviceId);
+
+  if (!service || service.isDeleted) {
+    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
+  }
+
+  if (service.sellerId.toString() !== sellerId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "You are not authorized to delete this service."
+    );
+  }
+
+  // সফট ডিলেট: isDeleted: true এবং স্ট্যাটাস PAUSED করা হলো
+  const result = await Service.findByIdAndUpdate(
+    serviceId,
+    { isDeleted: true, status: "PAUSED" },
+    { new: true }
+  );
+  return result;
+};
+
+export const ServiceServices = {
+  createService,
+  getAllServices,
+  getServiceById,
+  updateService,
+  deleteService,
+};

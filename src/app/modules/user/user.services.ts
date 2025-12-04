@@ -126,7 +126,7 @@ const updateUser = async (id: string, payload: Partial<IUser>) => {
  
 
 
-  const updatedDivision = await User.findByIdAndUpdate(id, payload, {
+  const updatedUser = await User.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
@@ -135,7 +135,7 @@ const updateUser = async (id: string, payload: Partial<IUser>) => {
     await deleteImageFromCLoudinary(existingUser.profilePicture);
   }
 
-  return updatedDivision;
+  return updatedUser;
 };
 
 
