@@ -4,6 +4,8 @@ import { AuthRoutes } from "../modules/auth/auth.route"
 import { MessageRoutes } from "../modules/utility-messages/message.route";
 import { ServiceRoutes } from "../modules/service/service.routes";
 import { OrderRoutes } from "../modules/order/order.routes";
+import { TransactionRoutes } from "../modules/transaction/transaction.routes";
+import { PaymentRoutes } from "../modules/payment/payment.route";
 
 export const router = Router()
 const moduleRoutes = [
@@ -24,10 +26,17 @@ const moduleRoutes = [
     route: OrderRoutes,
   },
   {
+    path: "/payment", 
+    route: PaymentRoutes,
+  },
+  {
+    path: "/transaction", 
+    route: TransactionRoutes,
+  },
+  {
     path: "/",
     route: MessageRoutes,
   },
-
 ];
 
 moduleRoutes.forEach((route) => {

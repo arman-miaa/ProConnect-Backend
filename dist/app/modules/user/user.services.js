@@ -105,14 +105,14 @@ const updateUser = (id, payload) => __awaiter(void 0, void 0, void 0, function* 
     if (!existingUser) {
         throw new Error("User not found.");
     }
-    const updatedDivision = yield user_model_1.User.findByIdAndUpdate(id, payload, {
+    const updatedUser = yield user_model_1.User.findByIdAndUpdate(id, payload, {
         new: true,
         runValidators: true,
     });
     if (payload.profilePicture && existingUser.profilePicture) {
         yield (0, cloudinary_config_1.deleteImageFromCLoudinary)(existingUser.profilePicture);
     }
-    return updatedDivision;
+    return updatedUser;
 });
 exports.UserServcies = {
     createUser,

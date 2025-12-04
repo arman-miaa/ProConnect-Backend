@@ -9,6 +9,7 @@ import { Order } from "./order.model";
 import { IOrder, OrderStatus } from "./order.interface";
 import { Role } from "../user/user.interface";
 import AppError from "../../errorHelpers/AppError";
+import { TransactionServices } from "../transaction/transaction.services";
 
 // ⚙️ কনস্ট্যান্ট
 const PLATFORM_COMMISSION_RATE = 0.1;
@@ -248,8 +249,11 @@ const completeOrder = async (orderId: string, clientId: string) => {
     { new: true }
   );
 
-  // 3. 💸 ট্রানজাকশন লজিক এখানে যুক্ত হবে
-  // await TransactionServices.creditSeller(order);
+  // 3. 💸 ট্রানজাকশন লজিক যুক্ত করা (সেটেলমেন্ট)
+  if (result) {
+    // 💡 TransactionService কল: সেলারকে টাকা দেওয়ার প্রক্রিয়া শুরু করা
+    await TransactionServices.creditSeller(result as IOrder);
+  }
 
   return result;
 };
@@ -259,8 +263,8 @@ const completeOrder = async (orderId: string, clientId: string) => {
 // =========================================================================
 const cancelOrder = async (
   orderId: string,
-  userId: string,
-  userRole: Role,
+  userId: string | null,
+  userRole: Role | null,
   updateData: any
 ) => {
   // 1. অর্ডার আনা
@@ -273,25 +277,30 @@ const cancelOrder = async (
   // 2. প্রাথমিক স্ট্যাটাস চেক (PENDING বা ACCEPTED না হলে ক্যানসেল করা যাবে না)
   if (
     order.orderStatus !== OrderStatus.PENDING &&
-    order.orderStatus !== OrderStatus.ACCEPTED
+    order.orderStatus !== OrderStatus.ACCEPTED &&
+    order.orderStatus !== OrderStatus.IN_PROGRESS // IN_PROGRESS এও ক্যানসেল হতে পারে
   ) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Only PENDING or ACCEPTED orders can be cancelled."
+      "Only PENDING, ACCEPTED, or IN_PROGRESS orders can be cancelled."
     );
   }
 
   // 3. সুরক্ষা: সঠিক ইউজার কিনা
-  if (
-    order.clientId.toString() !== userId &&
+  const isSystemCall = userId === null && userRole === null; // 💡 SSLCommerz ওয়েবুক কল বাইপাস
+
+  if (!isSystemCall) {
+    if (
+      order.clientId.toString() !== userId &&
       order.sellerId.toString() !== userId &&
-      userRole !== Role.ADMIN && 
-    userRole !== Role.SUPER_ADMIN
-  ) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      "You are not authorized to cancel this order."
-    );
+      userRole !== Role.ADMIN &&
+      userRole !== Role.SUPER_ADMIN
+    ) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not authorized to cancel this order."
+      );
+    }
   }
 
   // 4. স্ট্যাটাস CANCELLED করা
@@ -305,18 +314,42 @@ const cancelOrder = async (
     { new: true }
   );
 
-  // 5. 💰 রিফান্ড লজিক (যদি isPaid === true হয়) এখানে যুক্ত হবে
+  // 5. 💰 রিফান্ড লজিক (যদি isPaid === true হয়)
+  if (result && result.isPaid) {
+    // 💡 TransactionService কল: রিফান্ড প্রক্রিয়া শুরু করা
+    await TransactionServices.processRefund(result as IOrder);
+  }
 
   return result;
 };
 
+
+// order.services.ts - Add this method
+
+const updatePaymentStatus = async (orderId: string, isPaid: boolean) => {
+  const newStatus = isPaid ? OrderStatus.PENDING : OrderStatus.PENDING;
+  const updated = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      isPaid,
+      orderStatus: newStatus,
+      paidAt: isPaid ? new Date() : null,
+    },
+    { new: true }
+  );
+  return updated;
+};
+
+
+
 export const OrderServices = {
   createOrder,
   getAllOrders,
-    acceptOrder,
+  acceptOrder,
   inProgressOrder,
   deliverOrder,
   completeOrder,
   cancelOrder,
+  updatePaymentStatus,
   // getSingleOrder এর জন্য GenericService ব্যবহার করা হবে
 };

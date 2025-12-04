@@ -1,93 +1,159 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import httpStatus from "http-status-codes";
-import AppError from "../../../errorHelpers/AppError";
-import { Service } from "./service.model";
-import { IService } from "./service.interface";
+// src/app/modules/transaction/transaction.service.ts
 
-// 1. সার্ভিস তৈরি (বিক্রেতা কর্তৃক)
-const createService = async (sellerId: string, payload: Partial<IService> & { images?: string[] }) => {
-  const serviceData = {
-    ...payload,
-    sellerId,
-    images: payload.images || [],
-  };
-  const newService = await Service.create(serviceData);
-  return newService;
+import { Transaction, TransactionDocument } from "./transaction.model";
+import { TransactionType, TransactionStatus } from "./transaction.interface";
+import { IOrder, OrderStatus } from "../order/order.interface"; // 💡 আপনার Order Interface
+
+import { Types } from "mongoose";
+import { Order } from "../order/order.model"; // 💡 আপনার Order Model
+
+// 💸 ১. সফল অর্ডার থেকে সেলারকে টাকা দেওয়া (Called from Order Service: completeOrder)
+const creditSeller = async (order: IOrder): Promise<void> => {
+  if (order.isPaid === false) return;
+
+  // 1. সেলার সেটেলমেন্ট রেকর্ড
+  await Transaction.create({
+    relatedOrder: order._id,
+    userId: order.sellerId,
+    type: TransactionType.SETTLEMENT,
+    status: TransactionStatus.SUCCESS,
+    amount: order.netAmount,
+    description: `Order settlement (${order._id}). Net amount credited to seller.`,
+  });
+
+  // 2. প্ল্যাটফর্ম ফি রেকর্ড
+  await Transaction.create({
+    relatedOrder: order._id,
+    userId: order.sellerId, // সেলারের পক্ষ থেকে ফি কাটা হয়েছে ধরে নেওয়া হচ্ছে
+    type: TransactionType.FEE,
+    status: TransactionStatus.SUCCESS,
+    amount: -order.platformFee, // নেগেটিভ অ্যামাউন্ট দিয়ে ফি রেকর্ড করা (ঐচ্ছিক)
+    description: `Platform commission deducted for order ${order._id}.`,
+  });
+
+  // 3. 💡 (এখানে WalletService.credit() কল হবে)
 };
 
-// 2. সার্ভিস তালিকা দেখা (সমস্ত ব্যবহারকারী)
-const getAllServices = async (query: any) => {
-  const { category, search, minPrice, maxPrice, ...filters } = query;
-  const filter: any = { isDeleted: false, status: 'LIVE' };
-
-  if (category) {
-    filter.category = category;
-  }
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
-  }
-  if (search) {
-    // দ্রুত খোঁজার জন্য text index ব্যবহার
-    filter.$text = { $search: search }; 
+// 💰 ২. বাতিল অর্ডারের জন্য রিফান্ড প্রসেস করা (Called from Order Service: cancelOrder)
+const processRefund = async (order: IOrder): Promise<any> => {
+  if (!order.isPaid) {
+    return { success: true, message: "Order was not paid. No refund needed." };
   }
 
-  // সেলারের নাম ও রেটিং পপুলেট করা হলো
-  const services = await Service.find(filter).populate('sellerId', 'name profilePicture averageRating');
-  return services;
+  // 1. রিফান্ড গেটওয়ে কল
+  // 💡 await PaymentGateway.initiateRefund(order.paymentIntentId, order.totalPrice);
+
+  // 2. অর্ডারের স্ট্যাটাস REFUNDED করা
+  const orderUpdateResult = await Order.findByIdAndUpdate(
+    order._id,
+    { orderStatus: OrderStatus.REFUNDED },
+    { new: true }
+  ).lean();
+
+  // 3. লেনদেন রেকর্ড
+  await Transaction.create({
+    relatedOrder: order._id,
+    userId: order.clientId,
+    type: TransactionType.REFUND,
+    status: TransactionStatus.SUCCESS,
+    amount: order.totalPrice,
+    description: `Refund processed for cancelled order ${order._id}.`,
+  });
+
+  return orderUpdateResult;
 };
 
-// 3. একটি নির্দিষ্ট সার্ভিস দেখা
-const getServiceById = async (id: string) => {
-  const service = await Service.findById(id).populate('sellerId', 'name email profilePicture averageRating bio');
-  if (!service || service.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
-  }
-  return service;
+// 💵 ৩. সেলারের টাকা উত্তোলনের অনুরোধ (Seller Initiated)
+const createWithdrawal = async (
+  sellerId: Types.ObjectId,
+  amount: number
+): Promise<TransactionDocument> => {
+  // 1. ওয়ালেট ব্যালেন্স চেক (WalletService.getBalance() কল হবে)
+
+  // 2. টাকা উত্তোলনের ট্রানজাকশন তৈরি
+  const withdrawal = await Transaction.create({
+    userId: sellerId,
+    type: TransactionType.WITHDRAWAL,
+    status: TransactionStatus.PENDING,
+    amount: amount,
+    description: `Withdrawal request initiated by seller.`,
+  });
+
+  return withdrawal;
 };
 
-// 4. সার্ভিস আপডেট করা (বিক্রেতা কর্তৃক)
-const updateService = async (serviceId: string, sellerId: string, updateData: Partial<IService>) => {
-  const service = await Service.findById(serviceId);
+// 📜 ৪. ট্রানজাকশন হিস্টরি আনা
+const getMyTransactions = async (
+  userId: Types.ObjectId,
+  query: Record<string, any>
+) => {
+  const transactions = await Transaction.find({ userId: userId, ...query })
+    .sort("-createdAt")
+    .lean();
 
-  if (!service || service.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
-  }
-
-  // নিশ্চিত করা যে শুধুমাত্র সেলারই তার সার্ভিস আপডেট করতে পারে
-  if (service.sellerId.toString() !== sellerId) {
-    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to update this service.");
-  }
-  
-  // ⚠️ যদি ইমেজ পরিবর্তন হয়, পুরনো ইমেজ ক্লাউডিনারি থেকে ডিলেট করার লজিক এখানে যুক্ত হবে
-  // যেমন: if (updateData.images) { deleteOldImages(service.images); }
-
-  const updatedService = await Service.findByIdAndUpdate(serviceId, updateData, { new: true, runValidators: true });
-  return updatedService;
+  return transactions;
 };
 
-// 5. সার্ভিস ডিলেট করা (সফট ডিলেট - বিক্রেতা কর্তৃক)
-const deleteService = async (serviceId: string, sellerId: string) => {
-  const service = await Service.findById(serviceId);
+const getAllTransactions = async (query: Record<string, any>) => {
+  // 🚫 কোনো userId ফিল্টার নেই
+  const result = await Transaction.find({})
+    .sort(query.sortBy || "-createdAt")
+    .limit(query.limit || 10)
+    .skip(query.page * query.limit || 0)
+    .lean();
 
-  if (!service || service.isDeleted) {
-    throw new AppError(httpStatus.NOT_FOUND, "Service not found.");
-  }
-
-  if (service.sellerId.toString() !== sellerId) {
-    throw new AppError(httpStatus.FORBIDDEN, "You are not authorized to delete this service.");
-  }
-
-  // সফট ডিলেট: isDeleted: true এবং স্ট্যাটাস PAUSED করা হলো
-  const result = await Service.findByIdAndUpdate(serviceId, { isDeleted: true, status: 'PAUSED' }, { new: true });
   return result;
 };
 
-export const ServiceServices = {
-  createService,
-  getAllServices,
-  getServiceById,
-  updateService,
-  deleteService,
+
+
+const recordInitialPayment = async (order: IOrder) => {
+  // Create initial transaction record with INITIATED status
+  await Transaction.create({
+    relatedOrder: order._id,
+    // user.userId এর পরিবর্তে সরাসরি order.clientId ব্যবহার করা ভালো,
+    // কারণ ক্লায়েন্টই পেমেন্ট করছে।
+    userId: order.clientId, // 👈 FIX: userId যোগ করা হয়েছে
+
+    // 💡 FIX: আপনার TransactionType enum এর সঠিক মান ব্যবহার করুন।
+    // যদি আপনার enum এ 'DEPOSIT' বা 'INITIAL' থাকে, তবে সেটি ব্যবহার করুন।
+    type: TransactionType.DEPOSIT, // 👈 FIX: type এ সঠিক Enum ভ্যালু দিন
+
+    status: TransactionStatus.INITIATED, // বা আপনার এনামের সঠিক মান
+    amount: order.totalPrice,
+
+    description: `Initial payment initiated for order ${String(
+      order._id || ""
+    )}`,
+  });
+};
+
+const updateStatus = async (
+  orderId: string,
+  status: "SUCCESS" | "FAILED",
+  validationData?: any
+) => {
+  const updated = await Transaction.findOneAndUpdate(
+    { orderId },
+    {
+      status,
+      paymentGatewayData: validationData,
+      updatedAt: new Date(),
+    },
+    { new: true }
+  );
+  return updated;
+};
+
+
+
+export const TransactionServices = {
+  creditSeller,
+  processRefund,
+  createWithdrawal,
+  getMyTransactions,
+  getAllTransactions,
+  recordInitialPayment,
+  updateStatus,
 };
