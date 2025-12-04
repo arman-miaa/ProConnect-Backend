@@ -63,14 +63,17 @@ export const createServiceSchema = z.object({
 // =========================================================================
 // 2. সার্ভিস আপডেট (PATCH)
 // =========================================================================
+// =========================================================================
+// 2. সার্ভিস আপডেট (PATCH) - ফিক্স
+// =========================================================================
 export const updateServiceSchema = z.object({
-  body: z.object({
+
     title: z.string().min(5).max(100).optional(),
     description: z.string().min(20).optional(),
 
-    // 💡 ফিক্স: string থেকে number এ রূপান্তর
+    // 💡 ফিক্স: price - এখন string OR number গ্রহণ করবে।
     price: z
-      .string()
+      .union([z.number(), z.string()]) // <--- FIX APPLIED
       .transform((val) => Number(val))
       .refine(
         (val) => !isNaN(val) && val >= 1,
@@ -78,9 +81,9 @@ export const updateServiceSchema = z.object({
       )
       .optional(),
 
-    // 💡 ফিক্স: string থেকে number/int এ রূপান্তর
+    // 💡 ফিক্স: deliveryTime - এখন string OR number গ্রহণ করবে।
     deliveryTime: z
-      .string()
+      .union([z.number(), z.string()]) // <--- FIX APPLIED
       .transform((val) => Number(val))
       .refine(
         (val) => !isNaN(val) && Number.isInteger(val) && val >= 1,
@@ -91,19 +94,23 @@ export const updateServiceSchema = z.object({
     // 💡 ফিক্স: অনুমোদিত ক্যাটাগরি এনুম ব্যবহার করা
     category: serviceCategoryEnum.optional(),
 
-    // 💡 ফিক্স: কমা-সেপারেটেড স্ট্রিং থেকে array of string এ রূপান্তর
+    // 💡 ফিক্স: tags - এখন string OR array গ্রহণ করবে।
     tags: z
-      .string()
+      .union([z.array(z.string()), z.string()]) // <--- FIX APPLIED
       .optional()
       .transform((val) => {
-        if (!val) return [];
-        return val
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0);
+        // এই ট্রান্সফর্ম লজিকটি union এর উভয় ক্ষেত্রে কাজ করবে
+        if (Array.isArray(val))
+            return val.map((tag) => tag.trim()).filter((tag) => tag.length > 0);
+        if (typeof val === "string" && val) {
+            return val
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter((tag) => tag.length > 0);
+        }
+        return [];
       }),
 
     status: serviceStatusEnum.optional(),
-    // profileImage: z.string().url("Invalid image URL format").optional(),
-  }),
-});
+  })
+

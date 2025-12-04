@@ -15,7 +15,7 @@ const createService = catchAsync(
         
          const payload: IService = {
            ...req.body,
-           profileImage: req.file?.path,
+           image: req.file?.path,
          };
 
  
@@ -60,9 +60,13 @@ const getServiceById = catchAsync(
 const updateService = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    const sellerId = req.user.userId; // JWT থেকে সেলারের ID
+        const sellerId = req.user.userId;
+         const payload: IService = {
+             ...req.body,
+             image: req.file?.path,
+           };
 
-    const result = await ServiceServices.updateService(id, sellerId, req.body);
+    const result = await ServiceServices.updateService(id, sellerId, payload);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

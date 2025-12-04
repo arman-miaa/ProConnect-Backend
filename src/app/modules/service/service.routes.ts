@@ -19,19 +19,23 @@ router.post(
   ServiceControllers.createService
 );
 
+// সমস্ত সার্ভিস দেখুন (ফিল্টারিং/সার্চিং সহ) - সবার জন্য উন্মুক্ত
+router.get("/", ServiceControllers.getAllServices);
+
+
 // সেলার দ্বারা সার্ভিস আপডেট
 router.patch(
   "/:id",
   checkAuth(Role.SELLER),
+  multerUpload.single("file"),
   validateRequest(updateServiceSchema),
   ServiceControllers.updateService
 );
 
+
+
 // সেলার দ্বারা সার্ভিস ডিলেট
 router.delete("/:id", checkAuth(Role.SELLER), ServiceControllers.deleteService);
-
-// সমস্ত সার্ভিস দেখুন (ফিল্টারিং/সার্চিং সহ) - সবার জন্য উন্মুক্ত
-router.get("/", ServiceControllers.getAllServices);
 
 // একটি নির্দিষ্ট সার্ভিস দেখুন - সবার জন্য উন্মুক্ত
 router.get("/:id", ServiceControllers.getServiceById);

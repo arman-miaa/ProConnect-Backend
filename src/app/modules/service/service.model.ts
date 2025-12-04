@@ -17,7 +17,7 @@ const serviceSchema = new Schema<IService>(
     tags: { type: [String], default: [] },
 
     // 📸 পরিবর্তন: সিঙ্গেল ইমেজ URL
-    profileImage: { type: String, required: true, default: "" },
+    image: { type: String, required: true, default: "" },
 
     sellerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
 

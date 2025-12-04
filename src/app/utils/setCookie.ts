@@ -12,7 +12,7 @@ export const setAuthCookie = (res: Response, tokenInfo: AuthTokens) => {
               httpOnly: true,
               secure: envVars.NODE_ENV === "production",
               sameSite: "none",
-              maxAge: 1000 * 60 * 60,
+              maxAge: 1000 * 60 * 60 * 24,
             });
     }
 

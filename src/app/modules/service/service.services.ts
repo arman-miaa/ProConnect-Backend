@@ -5,6 +5,7 @@ import httpStatus from "http-status-codes";
 import { Service } from "./service.model";
 import { IService } from "./service.interface";
 import AppError from "../../errorHelpers/AppError";
+import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
 
 // 1. সার্ভিস তৈরি (বিক্রেতা কর্তৃক)
 const createService = async (
@@ -80,7 +81,10 @@ const updateService = async (
 
   // ⚠️ যদি ইমেজ পরিবর্তন হয়, পুরনো ইমেজ ক্লাউডিনারি থেকে ডিলেট করার লজিক এখানে যুক্ত হবে
   // যেমন: if (updateData.images) { deleteOldImages(service.images); }
-
+ if (service.image && service.image) {
+    await deleteImageFromCLoudinary(service.image);
+  }
+    
   const updatedService = await Service.findByIdAndUpdate(
     serviceId,
     updateData,

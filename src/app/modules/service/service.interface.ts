@@ -41,7 +41,7 @@ export interface IService {
   tags: string[];
 
   // 📸 পরিবর্তন: একটি ইমেজ URL
-  profileImage: string;
+  image: string;
 
   sellerId: Types.ObjectId; // User Model-এর সাথে রেফারেন্স
 
