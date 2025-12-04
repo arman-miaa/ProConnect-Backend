@@ -43,7 +43,7 @@ const createReview = async (payload: IReview) => {
   const finalPayload: IReview = {
     ...payload,
     serviceId: order.serviceId, 
-    // sellerId: order.sellerId,  
+    sellerId: order.sellerId,  
     clientId: clientId,
   };
 

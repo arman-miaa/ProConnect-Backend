@@ -15,6 +15,12 @@ const ReviewSchema = new Schema<IReview>(
       ref: "User",
       required: true,
     },
+    sellerId: {
+  type: Schema.Types.ObjectId,
+  ref: "User",
+  required: true,
+}
+,
     rating: {
       type: Number,
       required: true,
