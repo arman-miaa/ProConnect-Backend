@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/modules/payment/payment.controller.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -36,14 +37,18 @@ const initPayment = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0,
 // payment.controller.ts - Fix the type casting for query params
 const successPayment = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const payload = req.query || req.body;
-    // <CHANGE> Cast query params to string properly
-    yield payment_service_1.PaymentService.handlePaymentStatusUpdate({
+    const updatedOrder = yield payment_service_1.PaymentService.handlePaymentStatusUpdate({
         transactionId: String(payload.tran_id || payload.transactionId || ""),
         amount: parseFloat(String(payload.amount || "0")),
         status: "success",
         val_id: payload.val_id ? String(payload.val_id) : undefined,
     });
-    res.redirect(env_1.envVars.SSL.SSL_SUCCESS_FRONTEND_URL);
+    if (updatedOrder) {
+        res.redirect(`${env_1.envVars.SSL.SSL_SUCCESS_FRONTEND_URL}?orderId=${updatedOrder._id}`);
+    }
+    else {
+        res.redirect(env_1.envVars.SSL.SSL_FAIL_FRONTEND_URL);
+    }
 }));
 const failPayment = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const payload = req.query || req.body;
@@ -67,17 +72,18 @@ const cancelPayment = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 
 }));
 // 4. IPN / Webhook (সার্ভার-টু-সার্ভার কল)
 const validatePayment = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // 💡 IPN-এ সাধারণত val_id বা tran_id থাকে
     const payload = req.body;
-    const result = yield payment_service_1.PaymentService.handlePaymentStatusUpdate({
+    // Payment update handle
+    const order = yield payment_service_1.PaymentService.handlePaymentStatusUpdate({
         transactionId: payload.tran_id,
         amount: parseFloat(payload.amount),
-        status: "success", // IPN কল সবসময় সফল পেমেন্টের পর আসে
+        status: "success",
         val_id: payload.val_id,
     });
-    // IPN কল-এ শুধুমাত্র 200 OK পাঠাতে হয়, কোনো রিডাইরেক্ট নয়
+    // order থাকলে SUCCESS, না থাকলে FAILED
+    const status = order ? "SUCCESS" : "FAILED";
     res.status(http_status_codes_1.default.OK).json({
-        status: result.success ? "SUCCESS" : "FAILED",
+        status,
         message: "IPN processed.",
     });
 }));

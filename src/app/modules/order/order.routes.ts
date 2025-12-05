@@ -6,7 +6,7 @@ import { Role } from "../user/user.interface";
 import {
   createOrderSchema,
   updateOrderStatusSchema,
-  getOrderQuerySchema,
+
 } from "./order.validation";
 import { OrderControllers } from "./order.controller";
 import { checkAuth } from "../../middlewares/checkAuth";
@@ -26,8 +26,9 @@ router.post(
 // 2. 📜 সমস্ত অর্ডার আনা (GET /orders) - ক্লায়েন্ট/সেলার/অ্যাডমিন
 router.get(
   "/",
+  
   checkAuth(Role.CLIENT, Role.SELLER, Role.ADMIN),
-  validateRequest(getOrderQuerySchema),
+
   OrderControllers.getAllOrders
 );
 

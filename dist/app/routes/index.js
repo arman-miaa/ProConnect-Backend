@@ -9,6 +9,7 @@ const service_routes_1 = require("../modules/service/service.routes");
 const order_routes_1 = require("../modules/order/order.routes");
 const transaction_routes_1 = require("../modules/transaction/transaction.routes");
 const payment_route_1 = require("../modules/payment/payment.route");
+const review_routes_1 = require("../modules/review/review.routes");
 exports.router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -34,6 +35,10 @@ const moduleRoutes = [
     {
         path: "/transaction",
         route: transaction_routes_1.TransactionRoutes,
+    },
+    {
+        path: "/review",
+        route: review_routes_1.ReviewRoutes,
     },
     {
         path: "/",
