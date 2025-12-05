@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/modules/payment/payment.controller.ts
 
 import { Request, Response } from "express";
@@ -31,16 +32,22 @@ const initPayment = catchAsync(async (req: Request, res: Response) => {
 const successPayment = catchAsync(async (req: Request, res: Response) => {
   const payload = req.query || req.body;
 
-  // <CHANGE> Cast query params to string properly
-  await PaymentService.handlePaymentStatusUpdate({
+  const updatedOrder = await PaymentService.handlePaymentStatusUpdate({
     transactionId: String(payload.tran_id || payload.transactionId || ""),
     amount: parseFloat(String(payload.amount || "0")),
     status: "success",
     val_id: payload.val_id ? String(payload.val_id) : undefined,
   });
 
-  res.redirect(envVars.SSL.SSL_SUCCESS_FRONTEND_URL as string);
+  if (updatedOrder) {
+    res.redirect(
+      `${envVars.SSL.SSL_SUCCESS_FRONTEND_URL}?orderId=${updatedOrder._id}`
+    );
+  } else {
+    res.redirect(envVars.SSL.SSL_FAIL_FRONTEND_URL);
+  }
 });
+
 
 const failPayment = catchAsync(async (req: Request, res: Response) => {
   const payload = req.query || req.body;
@@ -70,22 +77,25 @@ const cancelPayment = catchAsync(async (req: Request, res: Response) => {
 
 // 4. IPN / Webhook (সার্ভার-টু-সার্ভার কল)
 const validatePayment = catchAsync(async (req: Request, res: Response) => {
-  // 💡 IPN-এ সাধারণত val_id বা tran_id থাকে
   const payload = req.body;
 
-  const result = await PaymentService.handlePaymentStatusUpdate({
+  // Payment update handle
+  const order = await PaymentService.handlePaymentStatusUpdate({
     transactionId: payload.tran_id,
     amount: parseFloat(payload.amount),
-    status: "success", // IPN কল সবসময় সফল পেমেন্টের পর আসে
+    status: "success",
     val_id: payload.val_id,
   });
 
-  // IPN কল-এ শুধুমাত্র 200 OK পাঠাতে হয়, কোনো রিডাইরেক্ট নয়
+  // order থাকলে SUCCESS, না থাকলে FAILED
+  const status = order ? "SUCCESS" : "FAILED";
+
   res.status(httpStatus.OK).json({
-    status: result.success ? "SUCCESS" : "FAILED",
+    status,
     message: "IPN processed.",
   });
 });
+
 
 // 5. ইনভয়েস (আপনাকে এই লজিকটি পরে তৈরি করতে হবে)
 const getInvoiceDownloadUrl = catchAsync(
