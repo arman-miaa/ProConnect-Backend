@@ -11,12 +11,18 @@ import { checkAuth } from "../../middlewares/checkAuth";
 const router = express.Router();
 
 // 1. 📝 নতুন রিভিউ তৈরি (ক্লায়েন্ট)
-// Rote: POST /reviews/
+
 router.post(
   '/',
   checkAuth(Role.CLIENT), 
-  // validateZodRequest(ReviewValidations.createReviewValidationSchema), // 💡 ভ্যালিডেশন যুক্ত করুন
+ 
   ReviewControllers.createReview
+);
+
+router.get(
+  "/admin/all",
+  checkAuth(Role.ADMIN,Role.SUPER_ADMIN), // অথবা Role.SUPER_ADMIN যোগ করতে পারো
+  ReviewControllers.getAllReviews // নতুন controller তৈরি করতে হবে
 );
 
 // 2. 🔍 নির্দিষ্ট সার্ভিসের রিভিউ দেখা (ভিজিটর/সেলার)
@@ -29,16 +35,16 @@ router.get(
 // 3. 💼 সেলারের সমস্ত সার্ভিসের রিভিউ দেখা (ভিজিটর/সেলার)
 // Rote: GET /reviews/seller/:sellerId
 router.get(
-  '/seller/:sellerId',
-  // checkAuth() দরকার নেই, পাবলিক রুট
-  ReviewControllers.getReviewsBySellerId 
+  "/seller/:sellerId",
+  checkAuth(Role.SELLER),
+  ReviewControllers.getReviewsBySellerId
 );
 
 // 4. 👤 ক্লায়েন্টের দেওয়া নিজস্ব রিভিউ দেখা (ক্লায়েন্ট)
 // Rote: GET /reviews/my-reviews
 router.get(
   '/my-reviews',
-  checkAuth(Role.CLIENT), // 💡 টোকেন আবশ্যিক
+  checkAuth(Role.CLIENT), 
   ReviewControllers.getMyReviews 
 );
 
