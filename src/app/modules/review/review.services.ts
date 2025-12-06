@@ -4,17 +4,17 @@ import { Order } from "../order/order.model";
 import { Review } from "./review.model";
 import { IReview } from "./review.interface";
 import AppError from "../../errorHelpers/AppError";
+import { Service } from "../service/service.model";
+import { User } from "../user/user.model";
 
 const createReview = async (payload: IReview) => {
   const { orderId, clientId } = payload;
 
-  // 1. অর্ডারটি লোড করুন
+  // 1. Load Order
   const order = await Order.findById(orderId);
-  if (!order) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found.");
-  }
+  if (!order) throw new AppError(httpStatus.NOT_FOUND, "Order not found.");
 
-  // 2. ক্লায়েন্ট এই অর্ডারটি দিয়েছে কিনা চেক করুন
+  // 2. Check if correct client
   if (order.clientId.toString() !== clientId.toString()) {
     throw new AppError(
       httpStatus.FORBIDDEN,
@@ -22,7 +22,7 @@ const createReview = async (payload: IReview) => {
     );
   }
 
-  // 3. অর্ডার স্ট্যাটাস চেক করুন (শুধুমাত্র COMPLETED অর্ডারের রিভিউ)
+  // 3. Check order is completed
   if (order.orderStatus !== "COMPLETED") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -30,7 +30,7 @@ const createReview = async (payload: IReview) => {
     );
   }
 
-  // 4. ডুপ্লিকেট রিভিউ চেক (orderId unique হওয়ায় এটি মডেল লেভেলেও সুরক্ষিত)
+  // 4. Prevent duplicate reviews
   const existingReview = await Review.findOne({ orderId });
   if (existingReview) {
     throw new AppError(
@@ -39,21 +39,58 @@ const createReview = async (payload: IReview) => {
     );
   }
 
-  // 5. 🛑 CRITICAL FIX: অর্ডার থেকে serviceId এবং sellerId যোগ করে finalPayload তৈরি করা
+  // 5. Add serviceId & sellerId from order
   const finalPayload: IReview = {
     ...payload,
-    serviceId: order.serviceId, 
-    sellerId: order.sellerId,  
-    clientId: clientId,
+    serviceId: order.serviceId,
+    sellerId: order.sellerId,
+    clientId,
   };
 
-  // 6. রিভিউ তৈরি করুন
+  // 6. Create Review
   const newReview = await Review.create(finalPayload);
 
-  // 7. ⭐️ সার্ভিস মডেলে রেটিং আপডেট করার লজিক এখানে যোগ করুন (যেমন: Service.findByIdAndUpdate(order.serviceId, ...))
+  // ---------------------------
+  // ⭐ 7. Update Service Ratings
+  // ---------------------------
+  const serviceStats = await Review.aggregate([
+    { $match: { serviceId: order.serviceId } },
+    {
+      $group: {
+        _id: "$serviceId",
+        avgRating: { $avg: "$rating" },
+        reviewCount: { $sum: 1 },
+      },
+    },
+  ]);
+
+  await Service.findByIdAndUpdate(order.serviceId, {
+    averageRating: serviceStats[0]?.avgRating || 0,
+    reviewCount: serviceStats[0]?.reviewCount || 0,
+  });
+
+  // ---------------------------
+  // ⭐ 8. Update Seller (User) Rating
+  // ---------------------------
+  const sellerStats = await Review.aggregate([
+    { $match: { sellerId: order.sellerId } },
+    {
+      $group: {
+        _id: "$sellerId",
+        avgRating: { $avg: "$rating" },
+      },
+    },
+  ]);
+
+  await User.findByIdAndUpdate(order.sellerId, {
+    averageRating: sellerStats[0]?.avgRating || 0,
+  });
+
+  // ---------------------------
 
   return newReview;
 };
+
 
 const getReviewsByServiceId = async (serviceId: string) => {
   const reviews = await Review.find({ serviceId }).populate(
