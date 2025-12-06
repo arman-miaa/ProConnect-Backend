@@ -31,4 +31,10 @@ router.get(
   TransactionControllers.getMyTransactions
 );
 
+router.get(
+  "/earnings/summary",
+  checkAuth(Role.SELLER), // শুধুমাত্র সেলার
+  TransactionControllers.getSellerFinancialSummary
+);
+
 export const TransactionRoutes = router;

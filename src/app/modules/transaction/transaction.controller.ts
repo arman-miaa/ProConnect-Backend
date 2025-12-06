@@ -57,8 +57,24 @@ const getAllTransactions = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSellerFinancialSummary = catchAsync(
+  async (req: Request, res: Response) => {
+    const sellerId = req.user?.userId;
+
+    const summary = await TransactionServices.calculateSellerSummary(sellerId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Seller financial summary retrieved successfully",
+      data: summary,
+    });
+  }
+);
+
 export const TransactionControllers = {
   createWithdrawal,
   getMyTransactions,
-  getAllTransactions
+  getAllTransactions,
+  getSellerFinancialSummary
 };

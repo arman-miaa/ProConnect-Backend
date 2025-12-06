@@ -4,16 +4,15 @@ import { z } from "zod";
 
 // 💰 সেলারের টাকা উত্তোলনের জন্য ইনপুট ভ্যালিডেশন
 const createWithdrawalSchema = z.object({
-  body: z
-    .object({
+
       amount: z
         .number({
           required_error: "Amount is required for withdrawal.",
         })
         .positive("Amount must be a positive number."),
     })
-    .strict(),
-});
+   
+
 
 // 📜 ট্রানজাকশন হিস্টরি কোয়েরি ভ্যালিডেশন
 const transactionQuerySchema = z.object({

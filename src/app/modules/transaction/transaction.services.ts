@@ -1,18 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/modules/transaction/transaction.service.ts
-
 import { Transaction, TransactionDocument } from "./transaction.model";
 import { TransactionType, TransactionStatus } from "./transaction.interface";
-import { IOrder, OrderStatus } from "../order/order.interface"; // 💡 আপনার Order Interface
-
+import { IOrder, OrderStatus } from "../order/order.interface";
 import { Types } from "mongoose";
-import { Order } from "../order/order.model"; // 💡 আপনার Order Model
+import { Order } from "../order/order.model";
 
-// 💸 ১. সফল অর্ডার থেকে সেলারকে টাকা দেওয়া (Called from Order Service: completeOrder)
+// 💰 Seller balance check
+const getSellerBalance = async (sellerId: Types.ObjectId) => {
+  const agg = await Transaction.aggregate([
+    { $match: { userId: sellerId, status: "SUCCESS" } },
+    { $group: { _id: "$type", total: { $sum: "$amount" } } },
+  ]);
+
+  let totalEarned = 0;
+  let totalWithdrawn = 0;
+
+  agg.forEach((item) => {
+    if (item._id === TransactionType.SETTLEMENT) totalEarned = item.total;
+    if (item._id === TransactionType.WITHDRAWAL) totalWithdrawn = item.total;
+  });
+
+  return totalEarned - totalWithdrawn;
+};
+
+// 💸 Successful order settlement to seller
 const creditSeller = async (order: IOrder): Promise<void> => {
-  if (order.isPaid === false) return;
+  if (!order.isPaid) return;
 
-  // 1. সেলার সেটেলমেন্ট রেকর্ড
+  // ১. Seller settlement
   await Transaction.create({
     relatedOrder: order._id,
     userId: order.sellerId,
@@ -22,36 +37,30 @@ const creditSeller = async (order: IOrder): Promise<void> => {
     description: `Order settlement (${order._id}). Net amount credited to seller.`,
   });
 
-  // 2. প্ল্যাটফর্ম ফি রেকর্ড
+  // ২. Platform fee deduction (optional)
   await Transaction.create({
     relatedOrder: order._id,
-    userId: order.sellerId, // সেলারের পক্ষ থেকে ফি কাটা হয়েছে ধরে নেওয়া হচ্ছে
+    userId: order.sellerId,
     type: TransactionType.FEE,
     status: TransactionStatus.SUCCESS,
-    amount: -order.platformFee, // নেগেটিভ অ্যামাউন্ট দিয়ে ফি রেকর্ড করা (ঐচ্ছিক)
+    amount: -order.platformFee,
     description: `Platform commission deducted for order ${order._id}.`,
   });
-
-  // 3. 💡 (এখানে WalletService.credit() কল হবে)
 };
 
-// 💰 ২. বাতিল অর্ডারের জন্য রিফান্ড প্রসেস করা (Called from Order Service: cancelOrder)
+// 💰 Process refund for cancelled order
 const processRefund = async (order: IOrder): Promise<any> => {
-  if (!order.isPaid) {
+  if (!order.isPaid)
     return { success: true, message: "Order was not paid. No refund needed." };
-  }
 
-  // 1. রিফান্ড গেটওয়ে কল
-  // 💡 await PaymentGateway.initiateRefund(order.paymentIntentId, order.totalPrice);
-
-  // 2. অর্ডারের স্ট্যাটাস REFUNDED করা
+  // Update order status
   const orderUpdateResult = await Order.findByIdAndUpdate(
     order._id,
     { orderStatus: OrderStatus.REFUNDED },
     { new: true }
   ).lean();
 
-  // 3. লেনদেন রেকর্ড
+  // Record refund transaction
   await Transaction.create({
     relatedOrder: order._id,
     userId: order.clientId,
@@ -64,71 +73,61 @@ const processRefund = async (order: IOrder): Promise<any> => {
   return orderUpdateResult;
 };
 
-// 💵 ৩. সেলারের টাকা উত্তোলনের অনুরোধ (Seller Initiated)
+// 💵 Seller withdrawal (immediate deduction)
 const createWithdrawal = async (
   sellerId: Types.ObjectId,
   amount: number
 ): Promise<TransactionDocument> => {
-  // 1. ওয়ালেট ব্যালেন্স চেক (WalletService.getBalance() কল হবে)
+  // Check balance
+  const balance = await getSellerBalance(sellerId);
+  if (amount > balance) throw new Error("Insufficient balance for withdrawal.");
 
-  // 2. টাকা উত্তোলনের ট্রানজাকশন তৈরি
+  // Create withdrawal transaction (amount negative for deduction)
   const withdrawal = await Transaction.create({
     userId: sellerId,
     type: TransactionType.WITHDRAWAL,
-    status: TransactionStatus.PENDING,
-    amount: amount,
-    description: `Withdrawal request initiated by seller.`,
+    status: TransactionStatus.SUCCESS,
+    amount: -amount,
+    description: `Withdrawal of ${amount} initiated by seller.`,
   });
 
   return withdrawal;
 };
 
-// 📜 ৪. ট্রানজাকশন হিস্টরি আনা
+// 📜 Get user's transaction history
 const getMyTransactions = async (
   userId: Types.ObjectId,
   query: Record<string, any>
 ) => {
-  const transactions = await Transaction.find({ userId: userId, ...query })
+  const transactions = await Transaction.find({ userId, ...query })
     .sort("-createdAt")
     .lean();
-
   return transactions;
 };
 
+// Get all transactions (admin)
 const getAllTransactions = async (query: Record<string, any>) => {
-  // 🚫 কোনো userId ফিল্টার নেই
   const result = await Transaction.find({})
     .sort(query.sortBy || "-createdAt")
     .limit(query.limit || 10)
-    .skip(query.page * query.limit || 0)
+    .skip((query.page || 0) * (query.limit || 10))
     .lean();
-
   return result;
 };
 
-
-
+// Record initial payment for order
 const recordInitialPayment = async (order: IOrder) => {
-  // Create initial transaction record with INITIATED status
   await Transaction.create({
     relatedOrder: order._id,
-    // user.userId এর পরিবর্তে সরাসরি order.clientId ব্যবহার করা ভালো,
-    // কারণ ক্লায়েন্টই পেমেন্ট করছে।
-    userId: order.clientId, // 👈 FIX: userId যোগ করা হয়েছে
-
-    // 💡 FIX: আপনার TransactionType enum এর সঠিক মান ব্যবহার করুন।
-    // যদি আপনার enum এ 'DEPOSIT' বা 'INITIAL' থাকে, তবে সেটি ব্যবহার করুন।
-    type: TransactionType.DEPOSIT, // 👈 FIX: type এ সঠিক Enum ভ্যালু দিন
-
-    status: TransactionStatus.INITIATED, // বা আপনার এনামের সঠিক মান
+    userId: order.clientId,
+    type: TransactionType.DEPOSIT,
+    status: TransactionStatus.INITIATED,
     amount: order.totalPrice,
-
-    description: `Initial payment initiated for order ${String(
-      order._id || ""
-    )}`,
+    description: `Initial payment initiated for order ${order._id}`,
   });
 };
 
+// Update transaction status
 const updateStatus = async (
   orderId: string,
   status: "SUCCESS" | "FAILED",
@@ -136,17 +135,47 @@ const updateStatus = async (
 ) => {
   const updated = await Transaction.findOneAndUpdate(
     { orderId },
-    {
-      status,
-      paymentGatewayData: validationData,
-      updatedAt: new Date(),
-    },
+    { status, paymentGatewayData: validationData, updatedAt: new Date() },
     { new: true }
   );
   return updated;
 };
 
+// Calculate seller financial summary
+const calculateSellerSummary = async (sellerId: string) => {
+  const sellerObjectId = new Types.ObjectId(sellerId);
 
+  // Total earned (SETTLEMENT)
+  const totalEarnedAgg = await Transaction.aggregate([
+    {
+      $match: {
+        userId: sellerObjectId,
+        type: TransactionType.SETTLEMENT,
+        status: TransactionStatus.SUCCESS,
+      },
+    },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const totalEarned = totalEarnedAgg[0]?.total || 0;
+
+  // Total withdrawn (WITHDRAWAL)
+  const totalWithdrawnAgg = await Transaction.aggregate([
+    {
+      $match: {
+        userId: sellerObjectId,
+        type: TransactionType.WITHDRAWAL,
+        status: TransactionStatus.SUCCESS,
+      },
+    },
+    { $group: { _id: null, total: { $sum: { $abs: "$amount" } } } }, // use abs because amount negative
+  ]);
+  const totalWithdrawn = totalWithdrawnAgg[0]?.total || 0;
+
+  // Available balance
+  const availableBalance = totalEarned - totalWithdrawn;
+
+  return { totalEarned, totalWithdrawn, availableBalance };
+};
 
 export const TransactionServices = {
   creditSeller,
@@ -156,4 +185,5 @@ export const TransactionServices = {
   getAllTransactions,
   recordInitialPayment,
   updateStatus,
+  calculateSellerSummary,
 };
