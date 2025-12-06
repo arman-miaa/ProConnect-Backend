@@ -175,10 +175,8 @@ const cancelOrder = (orderId, userId, userRole, updateData) => __awaiter(void 0,
     }
     // 2. প্রাথমিক স্ট্যাটাস চেক (PENDING বা ACCEPTED না হলে ক্যানসেল করা যাবে না)
     if (order.orderStatus !== order_interface_1.OrderStatus.PENDING &&
-        order.orderStatus !== order_interface_1.OrderStatus.ACCEPTED &&
-        order.orderStatus !== order_interface_1.OrderStatus.IN_PROGRESS // IN_PROGRESS এও ক্যানসেল হতে পারে
-    ) {
-        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Only PENDING, ACCEPTED, or IN_PROGRESS orders can be cancelled.");
+        order.orderStatus !== order_interface_1.OrderStatus.ACCEPTED) {
+        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Only PENDING or ACCEPTED orders can be cancelled.");
     }
     // 3. সুরক্ষা: সঠিক ইউজার কিনা
     const isSystemCall = userId === null && userRole === null; // 💡 SSLCommerz ওয়েবুক কল বাইপাস

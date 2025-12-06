@@ -30,7 +30,7 @@ export const seedSuperAdmin = async () => {
         role: Role.SUPER_ADMIN,
         email: envVars.SUPER_ADMIN_EMAIL,
         password: hashedPassword,
-      
+   
         isVerified: true, 
         is_active: IsActiv.ACTIVE,
       };
@@ -43,7 +43,7 @@ export const seedSuperAdmin = async () => {
      delete result.password;
      delete result.skills;
      delete result.averageRating;
-     delete result.location; 
+    //  delete result.location; 
      delete result.bio;
 
       console.log("Super Admin Created Successfully! \n");

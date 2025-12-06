@@ -15,9 +15,9 @@ const router = express_1.default.Router();
 // 1. 🛒 অর্ডার তৈরি (POST /orders) - ক্লায়েন্ট
 router.post("/", (0, checkAuth_1.checkAuth)(user_interface_1.Role.CLIENT), (0, validateRequrest_1.validateRequest)(order_validation_1.createOrderSchema), order_controller_1.OrderControllers.createOrder);
 // 2. 📜 সমস্ত অর্ডার আনা (GET /orders) - ক্লায়েন্ট/সেলার/অ্যাডমিন
-router.get("/", (0, checkAuth_1.checkAuth)(user_interface_1.Role.CLIENT, user_interface_1.Role.SELLER, user_interface_1.Role.ADMIN), (0, validateRequrest_1.validateRequest)(order_validation_1.getOrderQuerySchema), order_controller_1.OrderControllers.getAllOrders);
-// 3. ⚙️ স্ট্যাটাস আপডেট (PATCH /orders/:orderId) - ক্লায়েন্ট/সেলার
-router.patch("/:orderId", (0, checkAuth_1.checkAuth)(user_interface_1.Role.CLIENT, user_interface_1.Role.SELLER), (0, validateRequrest_1.validateRequest)(order_validation_1.updateOrderStatusSchema), order_controller_1.OrderControllers.updateOrderStatus);
+router.get("/", (0, checkAuth_1.checkAuth)(...Object.values(user_interface_1.Role)), order_controller_1.OrderControllers.getAllOrders);
 // 4. 🔍 একক অর্ডার আনা (GET /orders/:orderId) - ক্লায়েন্ট/সেলার/অ্যাডমিন
 router.get("/:orderId", (0, checkAuth_1.checkAuth)(...Object.values(user_interface_1.Role)), order_controller_1.OrderControllers.getSingleOrder);
+// 3. ⚙️ স্ট্যাটাস আপডেট (PATCH /orders/:orderId) - ক্লায়েন্ট/সেলার
+router.patch("/:orderId", (0, checkAuth_1.checkAuth)(user_interface_1.Role.CLIENT, user_interface_1.Role.SELLER), (0, validateRequrest_1.validateRequest)(order_validation_1.updateOrderStatusSchema), order_controller_1.OrderControllers.updateOrderStatus);
 exports.OrderRoutes = router;

@@ -18,7 +18,7 @@ export const checkAuth =
       if (!accessToken) {
         throw new AppError(httpStaut.UNAUTHORIZED, "No token provided");
       }
-
+   
       const verifiedToken = verifyToken(
         accessToken,
         envVars.JWT_ACCESS_SECRET

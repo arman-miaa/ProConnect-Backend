@@ -44,7 +44,7 @@ const seedSuperAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
         delete result.password;
         delete result.skills;
         delete result.averageRating;
-        delete result.location;
+        //  delete result.location; 
         delete result.bio;
         console.log("Super Admin Created Successfully! \n");
         console.log(result);

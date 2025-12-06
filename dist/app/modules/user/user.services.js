@@ -88,7 +88,7 @@ const createAdmin = (payload) => __awaiter(void 0, void 0, void 0, function* () 
     delete adminObject.password;
     delete adminObject.skills;
     delete adminObject.averageRating;
-    delete adminObject.location;
+    // delete adminObject.location; 
     delete adminObject.bio;
     return adminObject;
 });

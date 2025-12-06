@@ -95,7 +95,7 @@ const createAdmin = async (payload: any) => {
   delete adminObject.password;
   delete adminObject.skills; 
   delete adminObject.averageRating; 
-  delete adminObject.location; 
+  // delete adminObject.location; 
   delete adminObject.bio; 
 
 
