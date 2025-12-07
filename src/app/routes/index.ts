@@ -39,7 +39,7 @@ const moduleRoutes = [
     route: ReviewRoutes,
   },
   {
-    path: "/",
+    path: "/message",
     route: MessageRoutes,
   },
 ];
