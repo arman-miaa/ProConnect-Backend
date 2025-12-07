@@ -51,7 +51,7 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
   if (userObject.role === "ADMIN" || userObject.role === "SUPER_ADMIN") {
     delete userObject.skills;
     delete userObject.averageRating;
-    delete userObject.address;
+
     delete userObject.bio;
     delete userObject.title;
   }
@@ -140,7 +140,7 @@ const getMe = async (decodedToken: JwtPayload) => {
     // অ্যাডমিনদের জন্য অপ্রয়োজনীয় ফিল্ড বাদ দেওয়া
     delete userObject.skills;
     delete userObject.averageRating;
-    delete userObject.address;
+   
     delete userObject.bio;
     delete userObject.title;
   }
@@ -155,7 +155,7 @@ const getMe = async (decodedToken: JwtPayload) => {
   }
 
   // ✅ নতুন লজিক: CLIENT/SELLER দের জন্য অনুপস্থিত প্রোফাইল ফিল্ড যুক্ত করা
-  if (userObject.role !== "ADMIN" && userObject.role !== "SUPER_ADMIN") {
+  
     if (typeof userObject.address === "undefined") {
       userObject.address = "";
     }
@@ -166,7 +166,7 @@ const getMe = async (decodedToken: JwtPayload) => {
       userObject.bio = "";
     }
     // প্রয়োজনে অন্যান্য প্রোফাইল ফিল্ড (যেমন location) এখানে যুক্ত করা যেতে পারে
-  }
+  
 
   // Mongoose ভার্সন কী বাদ দেওয়া (সব রোলের জন্য)
   delete userObject.__v;

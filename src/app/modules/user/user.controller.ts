@@ -37,6 +37,7 @@ const createAdmin = catchAsync(
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const id = req.user.userId 
+    // console.log("upated data..............",req.body);
  
     // console.log(id,"id",req.body);
    const payload: IUser = {
@@ -54,7 +55,7 @@ const updateUser = catchAsync(
 );
 
 
-// =================== Admin Updating Other Users ===================
+
 // =================== Admin Updating Other Users ===================
 const adminUpdateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
