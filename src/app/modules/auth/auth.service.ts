@@ -14,7 +14,7 @@ import {
 import { envVars } from "../../config/env";
 
 import { JwtPayload } from "jsonwebtoken";
-import { IUser } from "../user/user.interface";
+import { IsActiv, IUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
@@ -24,6 +24,18 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
   if (!isUserExist) {
     throw new AppError(htttpStatus.BAD_REQUEST, "User does not exist");
   }
+
+  // 🚫 BLOCKED / INACTIVE user cannot login
+  if (
+    isUserExist.is_active === IsActiv.BLOCKED ||
+    isUserExist.is_active === IsActiv.INACTIVE
+  ) {
+    throw new AppError(
+      htttpStatus.FORBIDDEN,
+      `Your account is ${isUserExist.is_active}`
+    );
+  }
+
   const isPasswordMatched = await bcryptjs.compare(
     password as string,
     isUserExist.password as string
@@ -56,9 +68,9 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
     if (typeof userObject.address === "undefined") {
       userObject.address = "";
     }
-       if (typeof userObject.title === "undefined") {
-         userObject.title = ""; // নতুন ফিল্ড
-       }
+    if (typeof userObject.title === "undefined") {
+      userObject.title = ""; // নতুন ফিল্ড
+    }
     if (typeof userObject.bio === "undefined") {
       userObject.bio = "";
     }

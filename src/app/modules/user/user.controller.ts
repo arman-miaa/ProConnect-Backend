@@ -55,20 +55,23 @@ const updateUser = catchAsync(
 
 
 // =================== Admin Updating Other Users ===================
-const adminUpdateUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.params.id;
-  const decodedToken = req.user; // Admin token info
-  const updateData = req.body;
+// =================== Admin Updating Other Users ===================
+const adminUpdateUser = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.params.id;
+    const updateData = req.body;
 
-  // const result = await UserServcies.updateUser(userId, updateData, decodedToken);
-const result = {};
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "User updated successfully by admin",
-    data: result,
-  });
-});
+    const result = await UserServcies.adminUpdateUser(userId, updateData);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "User updated successfully by admin",
+      data: result,
+    });
+  }
+);
+
 
 const getAllUsers = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {

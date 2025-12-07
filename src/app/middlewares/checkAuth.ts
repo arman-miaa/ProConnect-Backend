@@ -18,12 +18,11 @@ export const checkAuth =
       if (!accessToken) {
         throw new AppError(httpStaut.UNAUTHORIZED, "No token provided");
       }
-   
+
       const verifiedToken = verifyToken(
         accessToken,
         envVars.JWT_ACCESS_SECRET
       ) as JwtPayload;
-
 
       const isUserExist = await User.findOne({
         email: verifiedToken.email,
@@ -31,17 +30,20 @@ export const checkAuth =
       if (!isUserExist) {
         throw new AppError(htttpStatus.BAD_REQUEST, "User does not exist");
       }
+      // 🚫 BLOCKED / INACTIVE user detect
       if (
         isUserExist.is_active === IsActiv.BLOCKED ||
         isUserExist.is_active === IsActiv.INACTIVE
       ) {
+        // 🔥 Force logout
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+
         throw new AppError(
-          htttpStatus.BAD_REQUEST,
-          `User is ${isUserExist.is_active}`
+          htttpStatus.UNAUTHORIZED,
+          `Your account is ${isUserExist.is_active}. You have been logged out.`
         );
       }
-
-
 
       if (!authRoles.includes(verifiedToken.role)) {
         throw new AppError(
@@ -50,8 +52,7 @@ export const checkAuth =
         );
       }
 
-        req.user = verifiedToken;
-      
+      req.user = verifiedToken;
 
       next();
     } catch (error) {

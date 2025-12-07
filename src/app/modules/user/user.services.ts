@@ -162,6 +162,63 @@ const deleteAdmin = async (id: string) => {
 };
 
 
+const adminUpdateUser = async (id: string, payload: Partial<IUser>) => {
+  const existingUser = await User.findById(id);
+
+  if (!existingUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // SUPER_ADMIN কে কেউ পরিবর্তন করতে পারবে না
+  if (existingUser.role === Role.SUPER_ADMIN) {
+    throw new AppError(httpStatus.FORBIDDEN, "You cannot update a super admin");
+  }
+
+  // ROLE Validation: শুধু VALID role পরিবর্তন করা যাবে
+  if (payload.role) {
+    const validRoles = Object.values(Role);
+
+    if (!validRoles.includes(payload.role)) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid role provided");
+    }
+
+    // SUPER_ADMIN এ promote করা যাবে না
+    if (payload.role === Role.SUPER_ADMIN) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Cannot promote user to super admin"
+      );
+    }
+  }
+
+  // ACTIVE / INACTIVE / BLOCKED validation
+  if (payload.is_active) {
+    const validStatus = ["ACTIVE", "INACTIVE", "BLOCKED"];
+    if (!validStatus.includes(payload.is_active)) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid status provided");
+    }
+  }
+
+  // Verify / Unverify only boolean
+  if (payload.isVerified !== undefined) {
+    if (typeof payload.isVerified !== "boolean") {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "isVerified must be true or false"
+      );
+    }
+  }
+
+  // Protect password (Admin can't update password)
+  if (payload.password) delete payload.password;
+
+  const updatedUser = await User.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  }).select("-password");
+
+  return updatedUser;
+};
 
 
 export const UserServcies = {
@@ -169,6 +226,7 @@ export const UserServcies = {
   createAdmin,
   getAllUsers,
   updateUser,
+  adminUpdateUser,
   getAllAdmins,
   deleteAdmin,
 
