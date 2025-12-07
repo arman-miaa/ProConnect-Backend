@@ -18,4 +18,6 @@ router.post("/withdrawal", (0, checkAuth_1.checkAuth)(user_interface_1.Role.SELL
 router.get("/all-history", (0, checkAuth_1.checkAuth)(user_interface_1.Role.ADMIN, user_interface_1.Role.SUPER_ADMIN), transaction_controller_1.TransactionControllers.getAllTransactions);
 // 📜 ব্যবহারকারীর নিজস্ব ট্রানজাকশন হিস্টরি
 router.get("/my-history", (0, checkAuth_1.checkAuth)(...Object.values(user_interface_1.Role)), transaction_controller_1.TransactionControllers.getMyTransactions);
+router.get("/earnings/summary", (0, checkAuth_1.checkAuth)(user_interface_1.Role.SELLER), // শুধুমাত্র সেলার
+transaction_controller_1.TransactionControllers.getSellerFinancialSummary);
 exports.TransactionRoutes = router;

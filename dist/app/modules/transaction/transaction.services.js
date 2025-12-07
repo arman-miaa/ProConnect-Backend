@@ -1,6 +1,4 @@
 "use strict";
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/modules/transaction/transaction.service.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,15 +10,33 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionServices = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const transaction_model_1 = require("./transaction.model");
 const transaction_interface_1 = require("./transaction.interface");
-const order_interface_1 = require("../order/order.interface"); // 💡 আপনার Order Interface
-const order_model_1 = require("../order/order.model"); // 💡 আপনার Order Model
-// 💸 ১. সফল অর্ডার থেকে সেলারকে টাকা দেওয়া (Called from Order Service: completeOrder)
+const order_interface_1 = require("../order/order.interface");
+const mongoose_1 = require("mongoose");
+const order_model_1 = require("../order/order.model");
+// 💰 Seller balance check
+const getSellerBalance = (sellerId) => __awaiter(void 0, void 0, void 0, function* () {
+    const agg = yield transaction_model_1.Transaction.aggregate([
+        { $match: { userId: sellerId, status: "SUCCESS" } },
+        { $group: { _id: "$type", total: { $sum: "$amount" } } },
+    ]);
+    let totalEarned = 0;
+    let totalWithdrawn = 0;
+    agg.forEach((item) => {
+        if (item._id === transaction_interface_1.TransactionType.SETTLEMENT)
+            totalEarned = item.total;
+        if (item._id === transaction_interface_1.TransactionType.WITHDRAWAL)
+            totalWithdrawn = item.total;
+    });
+    return totalEarned - totalWithdrawn;
+});
+// 💸 Successful order settlement to seller
 const creditSeller = (order) => __awaiter(void 0, void 0, void 0, function* () {
-    if (order.isPaid === false)
+    if (!order.isPaid)
         return;
-    // 1. সেলার সেটেলমেন্ট রেকর্ড
+    // ১. Seller settlement
     yield transaction_model_1.Transaction.create({
         relatedOrder: order._id,
         userId: order.sellerId,
@@ -29,27 +45,23 @@ const creditSeller = (order) => __awaiter(void 0, void 0, void 0, function* () {
         amount: order.netAmount,
         description: `Order settlement (${order._id}). Net amount credited to seller.`,
     });
-    // 2. প্ল্যাটফর্ম ফি রেকর্ড
+    // ২. Platform fee deduction (optional)
     yield transaction_model_1.Transaction.create({
         relatedOrder: order._id,
-        userId: order.sellerId, // সেলারের পক্ষ থেকে ফি কাটা হয়েছে ধরে নেওয়া হচ্ছে
+        userId: order.sellerId,
         type: transaction_interface_1.TransactionType.FEE,
         status: transaction_interface_1.TransactionStatus.SUCCESS,
-        amount: -order.platformFee, // নেগেটিভ অ্যামাউন্ট দিয়ে ফি রেকর্ড করা (ঐচ্ছিক)
+        amount: -order.platformFee,
         description: `Platform commission deducted for order ${order._id}.`,
     });
-    // 3. 💡 (এখানে WalletService.credit() কল হবে)
 });
-// 💰 ২. বাতিল অর্ডারের জন্য রিফান্ড প্রসেস করা (Called from Order Service: cancelOrder)
+// 💰 Process refund for cancelled order
 const processRefund = (order) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!order.isPaid) {
+    if (!order.isPaid)
         return { success: true, message: "Order was not paid. No refund needed." };
-    }
-    // 1. রিফান্ড গেটওয়ে কল
-    // 💡 await PaymentGateway.initiateRefund(order.paymentIntentId, order.totalPrice);
-    // 2. অর্ডারের স্ট্যাটাস REFUNDED করা
+    // Update order status
     const orderUpdateResult = yield order_model_1.Order.findByIdAndUpdate(order._id, { orderStatus: order_interface_1.OrderStatus.REFUNDED }, { new: true }).lean();
-    // 3. লেনদেন রেকর্ড
+    // Record refund transaction
     yield transaction_model_1.Transaction.create({
         relatedOrder: order._id,
         userId: order.clientId,
@@ -60,57 +72,85 @@ const processRefund = (order) => __awaiter(void 0, void 0, void 0, function* () 
     });
     return orderUpdateResult;
 });
-// 💵 ৩. সেলারের টাকা উত্তোলনের অনুরোধ (Seller Initiated)
+// 💵 Seller withdrawal (immediate deduction)
 const createWithdrawal = (sellerId, amount) => __awaiter(void 0, void 0, void 0, function* () {
-    // 1. ওয়ালেট ব্যালেন্স চেক (WalletService.getBalance() কল হবে)
-    // 2. টাকা উত্তোলনের ট্রানজাকশন তৈরি
+    // Check balance
+    const balance = yield getSellerBalance(sellerId);
+    if (amount > balance)
+        throw new Error("Insufficient balance for withdrawal.");
+    // Create withdrawal transaction (amount negative for deduction)
     const withdrawal = yield transaction_model_1.Transaction.create({
         userId: sellerId,
         type: transaction_interface_1.TransactionType.WITHDRAWAL,
-        status: transaction_interface_1.TransactionStatus.PENDING,
-        amount: amount,
-        description: `Withdrawal request initiated by seller.`,
+        status: transaction_interface_1.TransactionStatus.SUCCESS,
+        amount: -amount,
+        description: `Withdrawal of ${amount} initiated by seller.`,
     });
     return withdrawal;
 });
-// 📜 ৪. ট্রানজাকশন হিস্টরি আনা
+// 📜 Get user's transaction history
 const getMyTransactions = (userId, query) => __awaiter(void 0, void 0, void 0, function* () {
-    const transactions = yield transaction_model_1.Transaction.find(Object.assign({ userId: userId }, query))
+    const transactions = yield transaction_model_1.Transaction.find(Object.assign({ userId }, query))
         .sort("-createdAt")
         .lean();
     return transactions;
 });
+// Get all transactions (admin)
 const getAllTransactions = (query) => __awaiter(void 0, void 0, void 0, function* () {
-    // 🚫 কোনো userId ফিল্টার নেই
     const result = yield transaction_model_1.Transaction.find({})
         .sort(query.sortBy || "-createdAt")
         .limit(query.limit || 10)
-        .skip(query.page * query.limit || 0)
+        .skip((query.page || 0) * (query.limit || 10))
         .lean();
     return result;
 });
+// Record initial payment for order
 const recordInitialPayment = (order) => __awaiter(void 0, void 0, void 0, function* () {
-    // Create initial transaction record with INITIATED status
     yield transaction_model_1.Transaction.create({
         relatedOrder: order._id,
-        // user.userId এর পরিবর্তে সরাসরি order.clientId ব্যবহার করা ভালো,
-        // কারণ ক্লায়েন্টই পেমেন্ট করছে।
-        userId: order.clientId, // 👈 FIX: userId যোগ করা হয়েছে
-        // 💡 FIX: আপনার TransactionType enum এর সঠিক মান ব্যবহার করুন।
-        // যদি আপনার enum এ 'DEPOSIT' বা 'INITIAL' থাকে, তবে সেটি ব্যবহার করুন।
-        type: transaction_interface_1.TransactionType.DEPOSIT, // 👈 FIX: type এ সঠিক Enum ভ্যালু দিন
-        status: transaction_interface_1.TransactionStatus.INITIATED, // বা আপনার এনামের সঠিক মান
+        userId: order.clientId,
+        type: transaction_interface_1.TransactionType.DEPOSIT,
+        status: transaction_interface_1.TransactionStatus.INITIATED,
         amount: order.totalPrice,
-        description: `Initial payment initiated for order ${String(order._id || "")}`,
+        description: `Initial payment initiated for order ${order._id}`,
     });
 });
+// Update transaction status
 const updateStatus = (orderId, status, validationData) => __awaiter(void 0, void 0, void 0, function* () {
-    const updated = yield transaction_model_1.Transaction.findOneAndUpdate({ orderId }, {
-        status,
-        paymentGatewayData: validationData,
-        updatedAt: new Date(),
-    }, { new: true });
+    const updated = yield transaction_model_1.Transaction.findOneAndUpdate({ orderId }, { status, paymentGatewayData: validationData, updatedAt: new Date() }, { new: true });
     return updated;
+});
+// Calculate seller financial summary
+const calculateSellerSummary = (sellerId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const sellerObjectId = new mongoose_1.Types.ObjectId(sellerId);
+    // Total earned (SETTLEMENT)
+    const totalEarnedAgg = yield transaction_model_1.Transaction.aggregate([
+        {
+            $match: {
+                userId: sellerObjectId,
+                type: transaction_interface_1.TransactionType.SETTLEMENT,
+                status: transaction_interface_1.TransactionStatus.SUCCESS,
+            },
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalEarned = ((_a = totalEarnedAgg[0]) === null || _a === void 0 ? void 0 : _a.total) || 0;
+    // Total withdrawn (WITHDRAWAL)
+    const totalWithdrawnAgg = yield transaction_model_1.Transaction.aggregate([
+        {
+            $match: {
+                userId: sellerObjectId,
+                type: transaction_interface_1.TransactionType.WITHDRAWAL,
+                status: transaction_interface_1.TransactionStatus.SUCCESS,
+            },
+        },
+        { $group: { _id: null, total: { $sum: { $abs: "$amount" } } } }, // use abs because amount negative
+    ]);
+    const totalWithdrawn = ((_b = totalWithdrawnAgg[0]) === null || _b === void 0 ? void 0 : _b.total) || 0;
+    // Available balance
+    const availableBalance = totalEarned - totalWithdrawn;
+    return { totalEarned, totalWithdrawn, availableBalance };
 });
 exports.TransactionServices = {
     creditSeller,
@@ -120,4 +160,5 @@ exports.TransactionServices = {
     getAllTransactions,
     recordInitialPayment,
     updateStatus,
+    calculateSellerSummary,
 };

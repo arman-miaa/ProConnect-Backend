@@ -5,15 +5,11 @@ exports.TransactionValidations = void 0;
 const zod_1 = require("zod");
 // 💰 সেলারের টাকা উত্তোলনের জন্য ইনপুট ভ্যালিডেশন
 const createWithdrawalSchema = zod_1.z.object({
-    body: zod_1.z
-        .object({
-        amount: zod_1.z
-            .number({
-            required_error: "Amount is required for withdrawal.",
-        })
-            .positive("Amount must be a positive number."),
+    amount: zod_1.z
+        .number({
+        required_error: "Amount is required for withdrawal.",
     })
-        .strict(),
+        .positive("Amount must be a positive number."),
 });
 // 📜 ট্রানজাকশন হিস্টরি কোয়েরি ভ্যালিডেশন
 const transactionQuerySchema = zod_1.z.object({

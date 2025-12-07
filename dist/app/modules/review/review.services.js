@@ -17,31 +17,65 @@ const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const order_model_1 = require("../order/order.model");
 const review_model_1 = require("./review.model");
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
+const service_model_1 = require("../service/service.model");
+const user_model_1 = require("../user/user.model");
 const createReview = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     const { orderId, clientId } = payload;
-    // 1. অর্ডারটি লোড করুন
+    // 1. Load Order
     const order = yield order_model_1.Order.findById(orderId);
-    if (!order) {
+    if (!order)
         throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "Order not found.");
-    }
-    // 2. ক্লায়েন্ট এই অর্ডারটি দিয়েছে কিনা চেক করুন
+    // 2. Check if correct client
     if (order.clientId.toString() !== clientId.toString()) {
         throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "You are not authorized to review this order.");
     }
-    // 3. অর্ডার স্ট্যাটাস চেক করুন (শুধুমাত্র COMPLETED অর্ডারের রিভিউ)
+    // 3. Check order is completed
     if (order.orderStatus !== "COMPLETED") {
         throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Review can only be submitted for completed orders.");
     }
-    // 4. ডুপ্লিকেট রিভিউ চেক (orderId unique হওয়ায় এটি মডেল লেভেলেও সুরক্ষিত)
+    // 4. Prevent duplicate reviews
     const existingReview = yield review_model_1.Review.findOne({ orderId });
     if (existingReview) {
         throw new AppError_1.default(http_status_codes_1.default.CONFLICT, "You have already reviewed this order.");
     }
-    // 5. 🛑 CRITICAL FIX: অর্ডার থেকে serviceId এবং sellerId যোগ করে finalPayload তৈরি করা
-    const finalPayload = Object.assign(Object.assign({}, payload), { serviceId: order.serviceId, sellerId: order.sellerId, clientId: clientId });
-    // 6. রিভিউ তৈরি করুন
+    // 5. Add serviceId & sellerId from order
+    const finalPayload = Object.assign(Object.assign({}, payload), { serviceId: order.serviceId, sellerId: order.sellerId, clientId });
+    // 6. Create Review
     const newReview = yield review_model_1.Review.create(finalPayload);
-    // 7. ⭐️ সার্ভিস মডেলে রেটিং আপডেট করার লজিক এখানে যোগ করুন (যেমন: Service.findByIdAndUpdate(order.serviceId, ...))
+    // ---------------------------
+    // ⭐ 7. Update Service Ratings
+    // ---------------------------
+    const serviceStats = yield review_model_1.Review.aggregate([
+        { $match: { serviceId: order.serviceId } },
+        {
+            $group: {
+                _id: "$serviceId",
+                avgRating: { $avg: "$rating" },
+                reviewCount: { $sum: 1 },
+            },
+        },
+    ]);
+    yield service_model_1.Service.findByIdAndUpdate(order.serviceId, {
+        averageRating: ((_a = serviceStats[0]) === null || _a === void 0 ? void 0 : _a.avgRating) || 0,
+        reviewCount: ((_b = serviceStats[0]) === null || _b === void 0 ? void 0 : _b.reviewCount) || 0,
+    });
+    // ---------------------------
+    // ⭐ 8. Update Seller (User) Rating
+    // ---------------------------
+    const sellerStats = yield review_model_1.Review.aggregate([
+        { $match: { sellerId: order.sellerId } },
+        {
+            $group: {
+                _id: "$sellerId",
+                avgRating: { $avg: "$rating" },
+            },
+        },
+    ]);
+    yield user_model_1.User.findByIdAndUpdate(order.sellerId, {
+        averageRating: ((_c = sellerStats[0]) === null || _c === void 0 ? void 0 : _c.avgRating) || 0,
+    });
+    // ---------------------------
     return newReview;
 });
 const getReviewsByServiceId = (serviceId) => __awaiter(void 0, void 0, void 0, function* () {

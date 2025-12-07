@@ -30,6 +30,7 @@ const createUser = async (payload: any) => {
     password: hashedPassword,
     role,
     name: rest.name,
+    address:rest.address || ""
   };
 
   // ======================================
@@ -37,14 +38,14 @@ const createUser = async (payload: any) => {
   // ======================================
 
   if (role === "SELLER") {
-    userData.address = rest.address || "";
+ 
     userData.title = rest.title || "";
     userData.bio = rest.bio || "";
     userData.skills = rest.skills || [];
   }
 
 if (role === "CLIENT") {
-  userData.address = rest.address || "";
+
 
   // Make sure CLIENT never gets skills/title/bio
   delete userData.skills;
@@ -85,8 +86,9 @@ const createAdmin = async (payload: any) => {
     name,
     profilePicture,
     role: Role.ADMIN,
+    address: payload.address || "",
     isVerified: true,
-    is_active: "ACTIVE", 
+    is_active: "ACTIVE",
   });
 
   const adminObject: any = admin.toObject();

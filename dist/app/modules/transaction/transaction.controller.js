@@ -55,8 +55,20 @@ const getAllTransactions = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(
         data: result,
     });
 }));
+const getSellerFinancialSummary = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const sellerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+    const summary = yield transaction_services_1.TransactionServices.calculateSellerSummary(sellerId);
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: "Seller financial summary retrieved successfully",
+        data: summary,
+    });
+}));
 exports.TransactionControllers = {
     createWithdrawal,
     getMyTransactions,
-    getAllTransactions
+    getAllTransactions,
+    getSellerFinancialSummary
 };

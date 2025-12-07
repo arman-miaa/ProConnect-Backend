@@ -8,64 +8,85 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReviewControllers = void 0;
-const http_status_codes_1 = __importDefault(require("http-status-codes"));
-const sendResponse_1 = require("../../utils/sendResponse");
 const catchAsync_1 = require("../../utils/catchAsync");
+const sendResponse_1 = require("../../utils/sendResponse");
 const review_services_1 = require("./review.services");
+const review_model_1 = require("./review.model");
+// -------------------------
+// 📝 নতুন রিভিউ তৈরি
+// -------------------------
 const createReview = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    // টোকেন থেকে clientId যোগ করা হলো
     const payload = Object.assign(Object.assign({}, req.body), { clientId: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId });
     const result = yield review_services_1.ReviewServices.createReview(payload);
     (0, sendResponse_1.sendResponse)(res, {
-        statusCode: http_status_codes_1.default.CREATED,
+        statusCode: 201,
         success: true,
         message: "Review submitted successfully!",
         data: result,
     });
 }));
+// -------------------------
+// 🔍 নির্দিষ্ট সার্ভিসের রিভিউ
+// -------------------------
 const getReviewsByServiceId = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { serviceId } = req.params;
     const result = yield review_services_1.ReviewServices.getReviewsByServiceId(serviceId);
     (0, sendResponse_1.sendResponse)(res, {
-        statusCode: http_status_codes_1.default.OK,
+        statusCode: 200,
         success: true,
         message: "Reviews retrieved successfully.",
         data: result,
     });
 }));
-// 💡 নতুন ফাংশন: সেলারের সমস্ত সার্ভিসের রিভিউ দেখা
+// -------------------------
+// 💼 সেলারের সব সার্ভিসের রিভিউ
+// -------------------------
 const getReviewsBySellerId = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { sellerId } = req.params;
+    const sellerId = req.user.userId;
     const result = yield review_services_1.ReviewServices.getReviewsBySellerId(sellerId);
     (0, sendResponse_1.sendResponse)(res, {
-        statusCode: http_status_codes_1.default.OK,
+        statusCode: 200,
         success: true,
         message: "Seller's reviews retrieved successfully.",
         data: result,
     });
 }));
-// 💡 নতুন ফাংশন: ক্লায়েন্টের দেওয়া নিজস্ব রিভিউ দেখা
+// -------------------------
+// 👤 ক্লায়েন্টের নিজের রিভিউ
+// -------------------------
 const getMyReviews = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    // টোকেন থেকে clientId নেওয়া
     const clientId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
     const result = yield review_services_1.ReviewServices.getMyReviews(clientId);
     (0, sendResponse_1.sendResponse)(res, {
-        statusCode: http_status_codes_1.default.OK,
+        statusCode: 200,
         success: true,
         message: "Your submitted reviews retrieved successfully.",
         data: result,
     });
 }));
+// -------------------------
+// 👑 ADMIN: সব রিভিউ
+// -------------------------
+const getAllReviews = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const reviews = yield review_model_1.Review.find()
+        .populate("clientId", "name email")
+        .populate("sellerId", "name email")
+        .populate("serviceId", "_id title");
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: 200,
+        success: true,
+        message: "All reviews retrieved successfully",
+        data: reviews,
+    });
+}));
 exports.ReviewControllers = {
     createReview,
     getReviewsByServiceId,
-    getReviewsBySellerId, // নতুন
-    getMyReviews, // নতুন
+    getReviewsBySellerId,
+    getMyReviews,
+    getAllReviews,
 };
