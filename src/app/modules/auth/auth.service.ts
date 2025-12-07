@@ -174,9 +174,31 @@ const getMe = async (decodedToken: JwtPayload) => {
   // ফ্রন্টএন্ডের সুবিধার জন্য password এবং __v ছাড়া পুরো ইউজার অবজেক্টটি রিটার্ন করুন
   return userObject;
 };
+
+const changePassword = async (
+  oldPassword: string,
+  newPassword: string,
+  decodedToken: JwtPayload
+) => {
+  const user = await User.findById(decodedToken.userId).select("+password");
+  if (!user) throw new AppError(htttpStatus.NOT_FOUND, "User not found");
+
+  const isOldPasswordMatch = await bcryptjs.compare(oldPassword, user.password);
+  if (!isOldPasswordMatch) {
+    throw new AppError(htttpStatus.UNAUTHORIZED, "Old password does not match");
+  }
+
+  user.password = await bcryptjs.hash(
+    newPassword,
+    Number(envVars.BCRYPT_SALT_ROUND)
+  );
+  await user.save(); // await added
+};
+
 export const AuthServices = {
   credentialsLogin,
   getNewAccessToken,
+  changePassword,
   resetPassword,
   getMe,
 };
