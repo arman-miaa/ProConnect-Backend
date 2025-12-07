@@ -84,10 +84,39 @@ const getAllUsers = catchAsync(
   }
 );
 
+// GET ALL ADMINS
+const getAllAdmins = catchAsync(async (req, res) => {
+  const admins = await UserServcies.getAllAdmins();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All admins fetched successfully",
+    data: admins,
+  });
+});
+
+
+// DELETE ADMIN
+const deleteAdmin = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await UserServcies.deleteAdmin(id);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Admin deleted successfully",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   createUser,
   createAdmin,
   updateUser,
   adminUpdateUser,
   getAllUsers,
+  getAllAdmins,
+  deleteAdmin
 };

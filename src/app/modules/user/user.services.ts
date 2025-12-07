@@ -140,6 +140,26 @@ const updateUser = async (id: string, payload: Partial<IUser>) => {
   return updatedUser;
 };
 
+const getAllAdmins = async () => {
+  const admins = await User.find({ role: Role.ADMIN }).select("-password");
+  return admins;
+};
+
+const deleteAdmin = async (id: string) => {
+  const admin = await User.findById(id);
+
+  if (!admin) {
+    throw new AppError(httpStatus.NOT_FOUND, "Admin not found");
+  }
+
+  if (admin.role !== Role.ADMIN) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User is not an admin");
+  }
+
+  await User.findByIdAndDelete(id);
+
+  return { id };
+};
 
 
 
@@ -148,6 +168,9 @@ export const UserServcies = {
   createUser,
   createAdmin,
   getAllUsers,
-  updateUser
+  updateUser,
+  getAllAdmins,
+  deleteAdmin,
+
 
 };

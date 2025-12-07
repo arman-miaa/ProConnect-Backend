@@ -27,6 +27,13 @@ router.post(
   UserControllers.createAdmin
 );
 
+// Get all admins only
+router.get(
+  "/all-admins",
+  checkAuth(Role.SUPER_ADMIN,Role.ADMIN),
+  UserControllers.getAllAdmins
+);
+
 router.patch(
   "/update-profile",
 
@@ -34,6 +41,13 @@ router.patch(
   multerUpload.single("file"),
   validateRequest(updateUserSchema),
   UserControllers.updateUser
+);
+
+// Delete an admin
+router.delete(
+  "/delete-admin/:id",
+  checkAuth(Role.SUPER_ADMIN),
+  UserControllers.deleteAdmin
 );
 
 router.patch(
