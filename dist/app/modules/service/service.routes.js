@@ -15,6 +15,8 @@ const validateRequrest_1 = require("../../middlewares/validateRequrest");
 const router = express_1.default.Router();
 // সেলার দ্বারা সার্ভিস পোস্ট
 router.post("/", (0, checkAuth_1.checkAuth)(user_interface_1.Role.SELLER), multer_config_1.multerUpload.single("file"), (0, validateRequrest_1.validateRequest)(service_validation_1.createServiceSchema), service_controller_1.ServiceControllers.createService);
+// সেলার শুধুমাত্র তার সার্ভিস দেখবে
+router.get("/my-services", (0, checkAuth_1.checkAuth)(user_interface_1.Role.SELLER), service_controller_1.ServiceControllers.getMyServices);
 // সমস্ত সার্ভিস দেখুন (ফিল্টারিং/সার্চিং সহ) - সবার জন্য উন্মুক্ত
 router.get("/", service_controller_1.ServiceControllers.getAllServices);
 // সেলার দ্বারা সার্ভিস আপডেট

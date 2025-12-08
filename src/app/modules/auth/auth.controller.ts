@@ -90,22 +90,26 @@ const logout = catchAsync(
   }
 );
 
-const resetPassword = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const newPassword = req.body.newPassword;
-    const oldPassword = req.body.oldPassword;
-    const decodedToken = req.user;
+// const resetPassword = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const newPassword = req.body.newPassword;
+//     const oldPassword = req.body.oldPassword;
+//     const decodedToken = req.user;
 
-    await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
+//     await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Password chenged successfully",
-      data: null,
-    });
-  }
-);
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: "Password chenged successfully",
+//       data: null,
+//     });
+//   }
+// );
+
+
+
+
 const getMe = catchAsync(
   async (req: Request & { user?: any }, res: Response) => {
     const decodedToken = req.user;
@@ -143,11 +147,35 @@ const changePassword = catchAsync(
   }
 );
 
+export const forgotPassword = catchAsync(async (req, res) =>
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Check your email!",
+    data: await AuthServices.forgotPassword(req.body),
+  })
+);
+
+export const resetPassword = catchAsync(async (req, res) =>
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Password Reset!",
+    data: await AuthServices.resetPassword(
+      req.query.token as string,
+      req.body.password
+    ),
+  })
+);
+
+
 export const AuthControllers = {
   credentialsLogin,
   getNewAccessToken,
   logout,
   changePassword,
+  forgotPassword,
   resetPassword,
   getMe,
 };

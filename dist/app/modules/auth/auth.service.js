@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthServices = void 0;
+exports.AuthServices = exports.resetPassword = exports.forgotPassword = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -34,6 +34,8 @@ const userTokens_1 = require("../../utils/userTokens");
 const env_1 = require("../../config/env");
 const user_interface_1 = require("../user/user.interface");
 const user_model_1 = require("../user/user.model");
+const jwt_1 = require("../../utils/jwt");
+const sendEmail_1 = require("../../utils/sendEmail");
 const credentialsLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = payload;
     const isUserExist = yield user_model_1.User.findOne({ email }).select("+password");
@@ -92,15 +94,25 @@ const getNewAccessToken = (refreshToken) => __awaiter(void 0, void 0, void 0, fu
         accessToken: newAccessToken,
     };
 });
-const resetPassword = (oldPassword, newPassword, decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield user_model_1.User.findById(decodedToken.userId);
-    const isOldPasswordMatch = yield bcryptjs_1.default.compare(oldPassword, user.password);
-    if (!isOldPasswordMatch) {
-        throw new AppError_1.default(http_status_codes_1.default.UNAUTHORIZED, "Old Password is incorrect");
-    }
-    user.password = yield bcryptjs_1.default.hash(newPassword, Number(env_1.envVars.BCRYPT_SALT_ROUND));
-    yield user.save();
-});
+// const resetPassword = async (
+//   oldPassword: string,
+//   newPassword: string,
+//   decodedToken: JwtPayload
+// ) => {
+//   const user = await User.findById(decodedToken.userId);
+//   const isOldPasswordMatch = await bcryptjs.compare(
+//     oldPassword,
+//     user!.password as string
+//   );
+//   if (!isOldPasswordMatch) {
+//     throw new AppError(htttpStatus.UNAUTHORIZED, "Old Password is incorrect");
+//   }
+//   user!.password = await bcryptjs.hash(
+//     newPassword,
+//     Number(envVars.BCRYPT_SALT_ROUND)
+//   );
+//   await user!.save();
+// };
 const getMe = (decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
     // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
     const userData = yield user_model_1.User.findOne({
@@ -154,10 +166,47 @@ const changePassword = (oldPassword, newPassword, decodedToken) => __awaiter(voi
     user.password = yield bcryptjs_1.default.hash(newPassword, Number(env_1.envVars.BCRYPT_SALT_ROUND));
     yield user.save(); // await added
 });
+const forgotPassword = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const userData = yield user_model_1.User.findOne({
+        email: payload.email,
+    }).lean();
+    if (!userData) {
+        throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "User not found!");
+    }
+    const resetPassToken = (0, jwt_1.generateToken)({
+        userId: userData._id,
+    }, env_1.envVars.RESET_PASS_TOKEN_SECRET, env_1.envVars.RESET_PASS_TOKEN_EXPIRES);
+    // const resetPassLink = envVars.FRONTEND_URL + `?token=${resetPassToken}`;
+    const resetPassLink = `${env_1.envVars.FRONTEND_URL}/reset-password?token=${resetPassToken}`;
+    yield (0, sendEmail_1.emailSender)(userData.email, `
+        <div>
+            <p>Dear User,</p>
+            <p>Your password reset link 
+                <a href=${resetPassLink}>
+                    <button>
+                        Reset Password
+                    </button>
+                </a>
+            </p>
+
+        </div>
+        `);
+});
+exports.forgotPassword = forgotPassword;
+const resetPassword = (token, password) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = (0, jwt_1.verifyToken)(token, env_1.envVars.RESET_PASS_TOKEN_SECRET);
+    const user = yield user_model_1.User.findById(userId);
+    if (!user)
+        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "User not found!");
+    const hasPassword = bcryptjs_1.default.hashSync(password, bcryptjs_1.default.genSaltSync(10));
+    yield user_model_1.User.findByIdAndUpdate(userId, { password: hasPassword }, { runValidators: true });
+});
+exports.resetPassword = resetPassword;
 exports.AuthServices = {
     credentialsLogin,
     getNewAccessToken,
     changePassword,
-    resetPassword,
+    forgotPassword: exports.forgotPassword,
+    resetPassword: exports.resetPassword,
     getMe,
 };

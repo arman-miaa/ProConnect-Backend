@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthControllers = void 0;
+exports.AuthControllers = exports.resetPassword = exports.forgotPassword = void 0;
 const catchAsync_1 = require("../../utils/catchAsync");
 const sendResponse_1 = require("../../utils/sendResponse");
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
@@ -84,18 +84,20 @@ const logout = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0
         data: null,
     });
 }));
-const resetPassword = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const newPassword = req.body.newPassword;
-    const oldPassword = req.body.oldPassword;
-    const decodedToken = req.user;
-    yield auth_service_1.AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
-    (0, sendResponse_1.sendResponse)(res, {
-        statusCode: http_status_codes_1.default.OK,
-        success: true,
-        message: "Password chenged successfully",
-        data: null,
-    });
-}));
+// const resetPassword = catchAsync(
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     const newPassword = req.body.newPassword;
+//     const oldPassword = req.body.oldPassword;
+//     const decodedToken = req.user;
+//     await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: "Password chenged successfully",
+//       data: null,
+//     });
+//   }
+// );
 const getMe = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const decodedToken = req.user;
     const result = yield auth_service_1.AuthServices.getMe(decodedToken);
@@ -118,11 +120,28 @@ const changePassword = (0, catchAsync_1.catchAsync)((req, res, next) => __awaite
         data: null,
     });
 }));
+exports.forgotPassword = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    return (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: "Check your email!",
+        data: yield auth_service_1.AuthServices.forgotPassword(req.body),
+    });
+}));
+exports.resetPassword = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    return (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: "Password Reset!",
+        data: yield auth_service_1.AuthServices.resetPassword(req.query.token, req.body.password),
+    });
+}));
 exports.AuthControllers = {
     credentialsLogin,
     getNewAccessToken,
     logout,
     changePassword,
-    resetPassword,
+    forgotPassword: exports.forgotPassword,
+    resetPassword: exports.resetPassword,
     getMe,
 };

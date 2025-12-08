@@ -16,6 +16,8 @@ import { envVars } from "../../config/env";
 import { JwtPayload } from "jsonwebtoken";
 import { IsActiv, IUser } from "../user/user.interface";
 import { User } from "../user/user.model";
+import { generateToken, verifyToken } from "../../utils/jwt";
+import { emailSender } from "../../utils/sendEmail";
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
   const { email, password } = payload;
@@ -98,27 +100,27 @@ const getNewAccessToken = async (refreshToken: string) => {
   };
 };
 
-const resetPassword = async (
-  oldPassword: string,
-  newPassword: string,
-  decodedToken: JwtPayload
-) => {
-  const user = await User.findById(decodedToken.userId);
-  const isOldPasswordMatch = await bcryptjs.compare(
-    oldPassword,
-    user!.password as string
-  );
+// const resetPassword = async (
+//   oldPassword: string,
+//   newPassword: string,
+//   decodedToken: JwtPayload
+// ) => {
+//   const user = await User.findById(decodedToken.userId);
+//   const isOldPasswordMatch = await bcryptjs.compare(
+//     oldPassword,
+//     user!.password as string
+//   );
 
-  if (!isOldPasswordMatch) {
-    throw new AppError(htttpStatus.UNAUTHORIZED, "Old Password is incorrect");
-  }
+//   if (!isOldPasswordMatch) {
+//     throw new AppError(htttpStatus.UNAUTHORIZED, "Old Password is incorrect");
+//   }
 
-  user!.password = await bcryptjs.hash(
-    newPassword,
-    Number(envVars.BCRYPT_SALT_ROUND)
-  );
-  await user!.save();
-};
+//   user!.password = await bcryptjs.hash(
+//     newPassword,
+//     Number(envVars.BCRYPT_SALT_ROUND)
+//   );
+//   await user!.save();
+// };
 
 const getMe = async (decodedToken: JwtPayload) => {
   // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
@@ -175,6 +177,9 @@ const getMe = async (decodedToken: JwtPayload) => {
   return userObject;
 };
 
+
+
+
 const changePassword = async (
   oldPassword: string,
   newPassword: string,
@@ -195,10 +200,71 @@ const changePassword = async (
   await user.save(); // await added
 };
 
+export const forgotPassword = async (payload: { email: string }) => {
+  const userData = await User.findOne({
+    email: payload.email,
+  }).lean();
+
+  if (!userData) {
+    throw new AppError(htttpStatus.NOT_FOUND, "User not found!");
+  }
+
+  const resetPassToken = generateToken(
+    {
+      userId: userData._id,
+    },
+    envVars.RESET_PASS_TOKEN_SECRET ,
+    envVars.RESET_PASS_TOKEN_EXPIRES as string
+  );
+
+  // const resetPassLink = envVars.FRONTEND_URL + `?token=${resetPassToken}`;
+  const resetPassLink = `${envVars.FRONTEND_URL}/reset-password?token=${resetPassToken}`;
+
+  await emailSender(
+    userData.email,
+    `
+        <div>
+            <p>Dear User,</p>
+            <p>Your password reset link 
+                <a href=${resetPassLink}>
+                    <button>
+                        Reset Password
+                    </button>
+                </a>
+            </p>
+
+        </div>
+        `
+  );
+};
+
+export const resetPassword = async (token: string, password: string) => {
+
+  const { userId } = verifyToken(
+    token,
+    envVars.RESET_PASS_TOKEN_SECRET
+  ) as JwtPayload as {
+    userId: string;
+  };
+
+  const user = await User.findById(userId);
+
+  if (!user) throw new AppError(htttpStatus.BAD_REQUEST, "User not found!");
+
+  const hasPassword = bcryptjs.hashSync(password, bcryptjs.genSaltSync(10));
+
+  await User.findByIdAndUpdate(
+    userId,
+    { password: hasPassword },
+    { runValidators: true }
+  );
+};
+
 export const AuthServices = {
   credentialsLogin,
   getNewAccessToken,
   changePassword,
+  forgotPassword,
   resetPassword,
   getMe,
 };

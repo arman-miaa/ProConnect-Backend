@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ServiceServices = void 0;
+exports.ServiceServices = exports.getMyServices = void 0;
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
@@ -36,6 +36,15 @@ const createService = (sellerId, payload) => __awaiter(void 0, void 0, void 0, f
     const newService = yield service_model_1.Service.create(serviceData);
     return newService;
 });
+const getMyServices = (filters, sellerId) => __awaiter(void 0, void 0, void 0, function* () {
+    const query = Object.assign({}, filters);
+    if (sellerId) {
+        query.seller = sellerId;
+    }
+    const services = yield service_model_1.Service.find(query);
+    return services;
+});
+exports.getMyServices = getMyServices;
 // 2. সার্ভিস তালিকা দেখা (সমস্ত ব্যবহারকারী)
 const getAllServices = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const { category, search, minPrice, maxPrice } = query, filters = __rest(query, ["category", "search", "minPrice", "maxPrice"]);
@@ -100,6 +109,7 @@ const deleteService = (serviceId, sellerId) => __awaiter(void 0, void 0, void 0,
 exports.ServiceServices = {
     createService,
     getAllServices,
+    getMyServices: exports.getMyServices,
     getServiceById,
     updateService,
     deleteService,
