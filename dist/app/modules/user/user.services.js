@@ -46,18 +46,17 @@ const createUser = (payload) => __awaiter(void 0, void 0, void 0, function* () {
         password: hashedPassword,
         role,
         name: rest.name,
+        address: rest.address || ""
     };
     // ======================================
     // 🔥 ROLE BASED FIELD LOGIC
     // ======================================
     if (role === "SELLER") {
-        userData.address = rest.address || "";
         userData.title = rest.title || "";
         userData.bio = rest.bio || "";
         userData.skills = rest.skills || [];
     }
     if (role === "CLIENT") {
-        userData.address = rest.address || "";
         // Make sure CLIENT never gets skills/title/bio
         delete userData.skills;
         delete userData.title;
@@ -81,6 +80,7 @@ const createAdmin = (payload) => __awaiter(void 0, void 0, void 0, function* () 
         name,
         profilePicture,
         role: user_interface_1.Role.ADMIN,
+        address: payload.address || "",
         isVerified: true,
         is_active: "ACTIVE",
     });
@@ -114,9 +114,69 @@ const updateUser = (id, payload) => __awaiter(void 0, void 0, void 0, function* 
     }
     return updatedUser;
 });
+const getAllAdmins = () => __awaiter(void 0, void 0, void 0, function* () {
+    const admins = yield user_model_1.User.find({ role: user_interface_1.Role.ADMIN }).select("-password");
+    return admins;
+});
+const deleteAdmin = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    const admin = yield user_model_1.User.findById(id);
+    if (!admin) {
+        throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "Admin not found");
+    }
+    if (admin.role !== user_interface_1.Role.ADMIN) {
+        throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "User is not an admin");
+    }
+    yield user_model_1.User.findByIdAndDelete(id);
+    return { id };
+});
+const adminUpdateUser = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const existingUser = yield user_model_1.User.findById(id);
+    if (!existingUser) {
+        throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "User not found");
+    }
+    // SUPER_ADMIN কে কেউ পরিবর্তন করতে পারবে না
+    if (existingUser.role === user_interface_1.Role.SUPER_ADMIN) {
+        throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "You cannot update a super admin");
+    }
+    // ROLE Validation: শুধু VALID role পরিবর্তন করা যাবে
+    if (payload.role) {
+        const validRoles = Object.values(user_interface_1.Role);
+        if (!validRoles.includes(payload.role)) {
+            throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Invalid role provided");
+        }
+        // SUPER_ADMIN এ promote করা যাবে না
+        if (payload.role === user_interface_1.Role.SUPER_ADMIN) {
+            throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "Cannot promote user to super admin");
+        }
+    }
+    // ACTIVE / INACTIVE / BLOCKED validation
+    if (payload.is_active) {
+        const validStatus = ["ACTIVE", "INACTIVE", "BLOCKED"];
+        if (!validStatus.includes(payload.is_active)) {
+            throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Invalid status provided");
+        }
+    }
+    // Verify / Unverify only boolean
+    if (payload.isVerified !== undefined) {
+        if (typeof payload.isVerified !== "boolean") {
+            throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "isVerified must be true or false");
+        }
+    }
+    // Protect password (Admin can't update password)
+    if (payload.password)
+        delete payload.password;
+    const updatedUser = yield user_model_1.User.findByIdAndUpdate(id, payload, {
+        new: true,
+        runValidators: true,
+    }).select("-password");
+    return updatedUser;
+});
 exports.UserServcies = {
     createUser,
     createAdmin,
     getAllUsers,
-    updateUser
+    updateUser,
+    adminUpdateUser,
+    getAllAdmins,
+    deleteAdmin,
 };

@@ -21,6 +21,16 @@ const createService = async (
   return newService;
 };
 
+export const getMyServices = async (filters: any, sellerId?: string) => {
+  const query: any = { ...filters };
+  if (sellerId) {
+    query.seller = sellerId;
+  }
+
+  const services = await Service.find(query);
+  return services;
+};
+
 // 2. সার্ভিস তালিকা দেখা (সমস্ত ব্যবহারকারী)
 const getAllServices = async (query: any) => {
   const { category, search, minPrice, maxPrice, ...filters } = query;
@@ -46,6 +56,9 @@ const getAllServices = async (query: any) => {
   );
   return services;
 };
+
+
+
 
 // 3. একটি নির্দিষ্ট সার্ভিস দেখা
 const getServiceById = async (id: string) => {
@@ -120,6 +133,7 @@ const deleteService = async (serviceId: string, sellerId: string) => {
 export const ServiceServices = {
   createService,
   getAllServices,
+  getMyServices,
   getServiceById,
   updateService,
   deleteService,

@@ -41,7 +41,7 @@ const moduleRoutes = [
         route: review_routes_1.ReviewRoutes,
     },
     {
-        path: "/",
+        path: "/message",
         route: message_route_1.MessageRoutes,
     },
 ];

@@ -39,6 +39,7 @@ const createAdmin = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(v
 const updateUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const id = req.user.userId;
+    // console.log("upated data..............",req.body);
     // console.log(id,"id",req.body);
     const payload = Object.assign(Object.assign({}, req.body), { profilePicture: (_a = req.file) === null || _a === void 0 ? void 0 : _a.path });
     const result = yield user_services_1.UserServcies.updateUser(id, payload);
@@ -52,10 +53,8 @@ const updateUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(vo
 // =================== Admin Updating Other Users ===================
 const adminUpdateUser = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.params.id;
-    const decodedToken = req.user; // Admin token info
     const updateData = req.body;
-    // const result = await UserServcies.updateUser(userId, updateData, decodedToken);
-    const result = {};
+    const result = yield user_services_1.UserServcies.adminUpdateUser(userId, updateData);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -73,10 +72,33 @@ const getAllUsers = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(v
         meta: result.meta,
     });
 }));
+// GET ALL ADMINS
+const getAllAdmins = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const admins = yield user_services_1.UserServcies.getAllAdmins();
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: "All admins fetched successfully",
+        data: admins,
+    });
+}));
+// DELETE ADMIN
+const deleteAdmin = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const result = yield user_services_1.UserServcies.deleteAdmin(id);
+    (0, sendResponse_1.sendResponse)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: "Admin deleted successfully",
+        data: result,
+    });
+}));
 exports.UserControllers = {
     createUser,
     createAdmin,
     updateUser,
     adminUpdateUser,
     getAllUsers,
+    getAllAdmins,
+    deleteAdmin
 };

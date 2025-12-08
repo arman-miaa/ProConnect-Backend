@@ -12,13 +12,14 @@ const createService = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
         const sellerId = req.user.userId; // JWT থেকে সেলারের ID
       
+
         
          const payload: IService = {
            ...req.body,
            image: req.file?.path,
          };
 
- 
+   
     const result = await ServiceServices.createService(sellerId, payload);
 
     sendResponse(res, {
@@ -29,6 +30,21 @@ const createService = catchAsync(
     });
   }
 );
+
+const getMyServices = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const sellerId = req.user.id; 
+    const result = await ServiceServices.getMyServices({},sellerId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Your services retrieved successfully.",
+      data: result,
+    });
+  }
+);
+
 
 const getAllServices = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -42,6 +58,7 @@ const getAllServices = catchAsync(
     });
   }
 );
+
 
 const getServiceById = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -96,6 +113,7 @@ const deleteService = catchAsync(
 export const ServiceControllers = {
   createService,
   getAllServices,
+  getMyServices,
   getServiceById,
   updateService,
   deleteService,

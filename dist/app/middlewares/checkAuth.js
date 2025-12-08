@@ -33,9 +33,13 @@ const checkAuth = (...authRoles) => (req, res, next) => __awaiter(void 0, void 0
         if (!isUserExist) {
             throw new AppError_1.default(http_status_codes_2.default.BAD_REQUEST, "User does not exist");
         }
+        // 🚫 BLOCKED / INACTIVE user detect
         if (isUserExist.is_active === user_interface_1.IsActiv.BLOCKED ||
             isUserExist.is_active === user_interface_1.IsActiv.INACTIVE) {
-            throw new AppError_1.default(http_status_codes_2.default.BAD_REQUEST, `User is ${isUserExist.is_active}`);
+            // 🔥 Force logout
+            res.clearCookie("accessToken");
+            res.clearCookie("refreshToken");
+            throw new AppError_1.default(http_status_codes_2.default.UNAUTHORIZED, `Your account is ${isUserExist.is_active}. You have been logged out.`);
         }
         if (!authRoles.includes(verifiedToken.role)) {
             throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, "You are not allowed to access this resource");

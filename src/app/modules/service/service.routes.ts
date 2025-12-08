@@ -19,8 +19,13 @@ router.post(
   ServiceControllers.createService
 );
 
+// সেলার শুধুমাত্র তার সার্ভিস দেখবে
+router.get("/my-services", checkAuth(Role.SELLER), ServiceControllers.getMyServices);
+
 // সমস্ত সার্ভিস দেখুন (ফিল্টারিং/সার্চিং সহ) - সবার জন্য উন্মুক্ত
 router.get("/", ServiceControllers.getAllServices);
+
+
 
 
 // সেলার দ্বারা সার্ভিস আপডেট

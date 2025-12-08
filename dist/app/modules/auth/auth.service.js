@@ -32,12 +32,18 @@ const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const userTokens_1 = require("../../utils/userTokens");
 const env_1 = require("../../config/env");
+const user_interface_1 = require("../user/user.interface");
 const user_model_1 = require("../user/user.model");
 const credentialsLogin = (payload) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = payload;
     const isUserExist = yield user_model_1.User.findOne({ email }).select("+password");
     if (!isUserExist) {
         throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "User does not exist");
+    }
+    // 🚫 BLOCKED / INACTIVE user cannot login
+    if (isUserExist.is_active === user_interface_1.IsActiv.BLOCKED ||
+        isUserExist.is_active === user_interface_1.IsActiv.INACTIVE) {
+        throw new AppError_1.default(http_status_codes_1.default.FORBIDDEN, `Your account is ${isUserExist.is_active}`);
     }
     const isPasswordMatched = yield bcryptjs_1.default.compare(password, isUserExist.password);
     if (!isPasswordMatched) {
@@ -48,7 +54,6 @@ const credentialsLogin = (payload) => __awaiter(void 0, void 0, void 0, function
     if (userObject.role === "ADMIN" || userObject.role === "SUPER_ADMIN") {
         delete userObject.skills;
         delete userObject.averageRating;
-        delete userObject.address;
         delete userObject.bio;
         delete userObject.title;
     }
@@ -112,7 +117,6 @@ const getMe = (decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
         // অ্যাডমিনদের জন্য অপ্রয়োজনীয় ফিল্ড বাদ দেওয়া
         delete userObject.skills;
         delete userObject.averageRating;
-        delete userObject.address;
         delete userObject.bio;
         delete userObject.title;
     }
@@ -124,26 +128,36 @@ const getMe = (decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
         delete userObject.bio;
     }
     // ✅ নতুন লজিক: CLIENT/SELLER দের জন্য অনুপস্থিত প্রোফাইল ফিল্ড যুক্ত করা
-    if (userObject.role !== "ADMIN" && userObject.role !== "SUPER_ADMIN") {
-        if (typeof userObject.address === "undefined") {
-            userObject.address = "";
-        }
-        if (typeof userObject.title === "undefined") {
-            userObject.title = ""; // নতুন ফিল্ড
-        }
-        if (typeof userObject.bio === "undefined") {
-            userObject.bio = "";
-        }
-        // প্রয়োজনে অন্যান্য প্রোফাইল ফিল্ড (যেমন location) এখানে যুক্ত করা যেতে পারে
+    if (typeof userObject.address === "undefined") {
+        userObject.address = "";
     }
+    if (typeof userObject.title === "undefined") {
+        userObject.title = ""; // নতুন ফিল্ড
+    }
+    if (typeof userObject.bio === "undefined") {
+        userObject.bio = "";
+    }
+    // প্রয়োজনে অন্যান্য প্রোফাইল ফিল্ড (যেমন location) এখানে যুক্ত করা যেতে পারে
     // Mongoose ভার্সন কী বাদ দেওয়া (সব রোলের জন্য)
     delete userObject.__v;
     // ফ্রন্টএন্ডের সুবিধার জন্য password এবং __v ছাড়া পুরো ইউজার অবজেক্টটি রিটার্ন করুন
     return userObject;
 });
+const changePassword = (oldPassword, newPassword, decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.User.findById(decodedToken.userId).select("+password");
+    if (!user)
+        throw new AppError_1.default(http_status_codes_1.default.NOT_FOUND, "User not found");
+    const isOldPasswordMatch = yield bcryptjs_1.default.compare(oldPassword, user.password);
+    if (!isOldPasswordMatch) {
+        throw new AppError_1.default(http_status_codes_1.default.UNAUTHORIZED, "Old password does not match");
+    }
+    user.password = yield bcryptjs_1.default.hash(newPassword, Number(env_1.envVars.BCRYPT_SALT_ROUND));
+    yield user.save(); // await added
+});
 exports.AuthServices = {
     credentialsLogin,
     getNewAccessToken,
+    changePassword,
     resetPassword,
     getMe,
 };

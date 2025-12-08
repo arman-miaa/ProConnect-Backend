@@ -23,6 +23,7 @@ const seedSuperAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const isSuporAdminExist = yield user_model_1.User.findOne({
             email: env_1.envVars.SUPER_ADMIN_EMAIL,
+            role: user_interface_1.Role.SUPER_ADMIN,
         });
         if (isSuporAdminExist) {
             console.log("Super Admin Already Exists!");
@@ -35,6 +36,7 @@ const seedSuperAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
             role: user_interface_1.Role.SUPER_ADMIN,
             email: env_1.envVars.SUPER_ADMIN_EMAIL,
             password: hashedPassword,
+            address: "Dhaka, Bangladesh",
             isVerified: true,
             is_active: user_interface_1.IsActiv.ACTIVE,
         };
@@ -44,7 +46,6 @@ const seedSuperAdmin = () => __awaiter(void 0, void 0, void 0, function* () {
         delete result.password;
         delete result.skills;
         delete result.averageRating;
-        //  delete result.location; 
         delete result.bio;
         console.log("Super Admin Created Successfully! \n");
         console.log(result);
