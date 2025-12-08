@@ -41,10 +41,6 @@ const getNewAccessToken = catchAsync(
     }
     const tokenInfo = await AuthServices.getNewAccessToken(refreshToken);
 
-    // res.cookie("accessToken", tokenInfo.accessToken, {
-    //   httpOnly: true,
-    //   secure: false,
-    // });
     setAuthCookie(res, tokenInfo);
 
     sendResponse(res, {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import AppError from "../../errorHelpers/AppError";
 
@@ -92,35 +92,10 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
 };
 
 const getNewAccessToken = async (refreshToken: string) => {
-  const newAccessToken = await createNewAccessTokenWithRefreshToken(
-    refreshToken
-  );
-  return {
-    accessToken: newAccessToken,
-  };
+  const newTokens = await createNewAccessTokenWithRefreshToken(refreshToken);
+  return newTokens;
 };
 
-// const resetPassword = async (
-//   oldPassword: string,
-//   newPassword: string,
-//   decodedToken: JwtPayload
-// ) => {
-//   const user = await User.findById(decodedToken.userId);
-//   const isOldPasswordMatch = await bcryptjs.compare(
-//     oldPassword,
-//     user!.password as string
-//   );
-
-//   if (!isOldPasswordMatch) {
-//     throw new AppError(htttpStatus.UNAUTHORIZED, "Old Password is incorrect");
-//   }
-
-//   user!.password = await bcryptjs.hash(
-//     newPassword,
-//     Number(envVars.BCRYPT_SALT_ROUND)
-//   );
-//   await user!.save();
-// };
 
 const getMe = async (decodedToken: JwtPayload) => {
   // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
