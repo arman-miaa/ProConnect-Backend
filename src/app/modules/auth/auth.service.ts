@@ -220,22 +220,38 @@ export const forgotPassword = async (payload: { email: string }) => {
   // const resetPassLink = envVars.FRONTEND_URL + `?token=${resetPassToken}`;
   const resetPassLink = `${envVars.FRONTEND_URL}/reset-password?token=${resetPassToken}`;
 
-  await emailSender(
-    userData.email,
-    `
-        <div>
-            <p>Dear User,</p>
-            <p>Your password reset link 
-                <a href=${resetPassLink}>
-                    <button>
-                        Reset Password
-                    </button>
-                </a>
-            </p>
+ await emailSender(
+   userData.email,
+   `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+      <p>Dear User,</p>
 
-        </div>
-        `
-  );
+      <p>
+        You requested a password reset. Click the button below to reset your password:
+      </p>
+
+      <p>
+        <a href="${resetPassLink}" style="text-decoration: none;">
+          <button style="
+            padding: 10px 20px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+          ">
+            Reset Password
+          </button>
+        </a>
+      </p>
+
+      <p>If you did not request this, please ignore this email.</p>
+    </div>
+  `
+ );
+
+
+
 };
 
 export const resetPassword = async (token: string, password: string) => {
