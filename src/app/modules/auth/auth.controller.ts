@@ -86,22 +86,6 @@ const logout = catchAsync(
   }
 );
 
-// const resetPassword = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const newPassword = req.body.newPassword;
-//     const oldPassword = req.body.oldPassword;
-//     const decodedToken = req.user;
-
-//     await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
-
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: "Password chenged successfully",
-//       data: null,
-//     });
-//   }
-// );
 
 
 
