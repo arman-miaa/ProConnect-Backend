@@ -33,6 +33,38 @@ const createUserTokens = (user) => {
     };
 };
 exports.createUserTokens = createUserTokens;
+// export const createNewAccessTokenWithRefreshToken = async(refreshToken: string) => {
+//       const verifiedRefreshToken = verifyToken(
+//         refreshToken,
+//         envVars.JWT_REFRESH_SECRET
+//       ) as JwtPayload;
+//       const isUserExist = await User.findOne({
+//         email: verifiedRefreshToken.email,
+//       });
+//       if (!isUserExist) {
+//         throw new AppError(htttpStatus.BAD_REQUEST, "User does not exist");
+//       }
+//       if (
+//         isUserExist.is_active === IsActiv.BLOCKED ||
+//         isUserExist.is_active === IsActiv.INACTIVE
+//       ) {
+//         throw new AppError(
+//           htttpStatus.BAD_REQUEST,
+//           `User is ${isUserExist.is_active}`
+//         );
+//       }
+//       const jwtPayload = {
+//         userId: isUserExist._id,
+//         email: isUserExist.email,
+//         role: isUserExist.role,
+//       };
+//       const accessToken = generateToken(
+//         jwtPayload,
+//         envVars.JWT_ACCESS_SECRET,
+//         envVars.JWT_ACCESS_EXPIRES
+//       );
+//     return accessToken;
+// }
 const createNewAccessTokenWithRefreshToken = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
     const verifiedRefreshToken = (0, jwt_1.verifyToken)(refreshToken, env_1.envVars.JWT_REFRESH_SECRET);
     const isUserExist = yield user_model_1.User.findOne({
@@ -50,7 +82,19 @@ const createNewAccessTokenWithRefreshToken = (refreshToken) => __awaiter(void 0,
         email: isUserExist.email,
         role: isUserExist.role,
     };
-    const accessToken = (0, jwt_1.generateToken)(jwtPayload, env_1.envVars.JWT_ACCESS_SECRET, env_1.envVars.JWT_ACCESS_EXPIRES);
-    return accessToken;
+    //   const accessToken = generateToken(
+    //     jwtPayload,
+    //     envVars.JWT_ACCESS_SECRET,
+    //     envVars.JWT_ACCESS_EXPIRES
+    //   );
+    // return accessToken;
+    // 1. Generate NEW Access Token
+    const newAccessToken = (0, jwt_1.generateToken)(jwtPayload, env_1.envVars.JWT_ACCESS_SECRET, env_1.envVars.JWT_ACCESS_EXPIRES);
+    // 2. Generate NEW Refresh Token (Sliding Session Logic)
+    const newRefreshToken = (0, jwt_1.generateToken)(jwtPayload, env_1.envVars.JWT_REFRESH_SECRET, env_1.envVars.JWT_REFRESH_EXPIRES);
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken, // <--- এখন Refresh Token ও ফেরত দেওয়া হচ্ছে
+    };
 });
 exports.createNewAccessTokenWithRefreshToken = createNewAccessTokenWithRefreshToken;

@@ -7,6 +7,7 @@ import { OrderRoutes } from "../modules/order/order.routes";
 import { TransactionRoutes } from "../modules/transaction/transaction.routes";
 import { PaymentRoutes } from "../modules/payment/payment.route";
 import { ReviewRoutes } from "../modules/review/review.routes";
+import { StateRoute } from "../modules/admin/dashboard.state.route";
 
 export const router = Router()
 const moduleRoutes = [
@@ -41,6 +42,10 @@ const moduleRoutes = [
   {
     path: "/message",
     route: MessageRoutes,
+  },
+  {
+    path: "/state",
+    route: StateRoute,
   },
 ];
 

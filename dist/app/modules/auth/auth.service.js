@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -24,8 +25,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthServices = exports.resetPassword = exports.forgotPassword = void 0;
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 const AppError_1 = __importDefault(require("../../errorHelpers/AppError"));
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
@@ -89,30 +88,9 @@ const credentialsLogin = (payload) => __awaiter(void 0, void 0, void 0, function
     };
 });
 const getNewAccessToken = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
-    const newAccessToken = yield (0, userTokens_1.createNewAccessTokenWithRefreshToken)(refreshToken);
-    return {
-        accessToken: newAccessToken,
-    };
+    const newTokens = yield (0, userTokens_1.createNewAccessTokenWithRefreshToken)(refreshToken);
+    return newTokens;
 });
-// const resetPassword = async (
-//   oldPassword: string,
-//   newPassword: string,
-//   decodedToken: JwtPayload
-// ) => {
-//   const user = await User.findById(decodedToken.userId);
-//   const isOldPasswordMatch = await bcryptjs.compare(
-//     oldPassword,
-//     user!.password as string
-//   );
-//   if (!isOldPasswordMatch) {
-//     throw new AppError(htttpStatus.UNAUTHORIZED, "Old Password is incorrect");
-//   }
-//   user!.password = await bcryptjs.hash(
-//     newPassword,
-//     Number(envVars.BCRYPT_SALT_ROUND)
-//   );
-//   await user!.save();
-// };
 const getMe = (decodedToken) => __awaiter(void 0, void 0, void 0, function* () {
     // এখানে আপনি JWT পেলোডটি পাচ্ছেন, টোকেন আবার ডিকোড করার দরকার নেই
     const userData = yield user_model_1.User.findOne({
@@ -179,18 +157,31 @@ const forgotPassword = (payload) => __awaiter(void 0, void 0, void 0, function* 
     // const resetPassLink = envVars.FRONTEND_URL + `?token=${resetPassToken}`;
     const resetPassLink = `${env_1.envVars.FRONTEND_URL}/reset-password?token=${resetPassToken}`;
     yield (0, sendEmail_1.emailSender)(userData.email, `
-        <div>
-            <p>Dear User,</p>
-            <p>Your password reset link 
-                <a href=${resetPassLink}>
-                    <button>
-                        Reset Password
-                    </button>
-                </a>
-            </p>
+    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+      <p>Dear User,</p>
 
-        </div>
-        `);
+      <p>
+        You requested a password reset. Click the button below to reset your password:
+      </p>
+
+      <p>
+        <a href="${resetPassLink}" style="text-decoration: none;">
+          <button style="
+            padding: 10px 20px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+          ">
+            Reset Password
+          </button>
+        </a>
+      </p>
+
+      <p>If you did not request this, please ignore this email.</p>
+    </div>
+  `);
 });
 exports.forgotPassword = forgotPassword;
 const resetPassword = (token, password) => __awaiter(void 0, void 0, void 0, function* () {

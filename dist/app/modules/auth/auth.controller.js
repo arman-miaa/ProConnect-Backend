@@ -43,10 +43,6 @@ const getNewAccessToken = (0, catchAsync_1.catchAsync)((req, res, next) => __awa
         throw new AppError_1.default(http_status_codes_1.default.BAD_REQUEST, "Refresh Token is missing");
     }
     const tokenInfo = yield auth_service_1.AuthServices.getNewAccessToken(refreshToken);
-    // res.cookie("accessToken", tokenInfo.accessToken, {
-    //   httpOnly: true,
-    //   secure: false,
-    // });
     (0, setCookie_1.setAuthCookie)(res, tokenInfo);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,

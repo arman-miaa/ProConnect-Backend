@@ -10,6 +10,7 @@ const order_routes_1 = require("../modules/order/order.routes");
 const transaction_routes_1 = require("../modules/transaction/transaction.routes");
 const payment_route_1 = require("../modules/payment/payment.route");
 const review_routes_1 = require("../modules/review/review.routes");
+const dashboard_state_route_1 = require("../modules/admin/dashboard.state.route");
 exports.router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -43,6 +44,10 @@ const moduleRoutes = [
     {
         path: "/message",
         route: message_route_1.MessageRoutes,
+    },
+    {
+        path: "/state",
+        route: dashboard_state_route_1.StateRoute,
     },
 ];
 moduleRoutes.forEach((route) => {
