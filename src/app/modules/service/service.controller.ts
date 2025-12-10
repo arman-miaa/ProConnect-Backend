@@ -33,14 +33,16 @@ const createService = catchAsync(
 
 const getMyServices = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const sellerId = req.user.id; 
+    const sellerId = req.user.userId; 
     const result = await ServiceServices.getMyServices({},sellerId);
+
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
       message: "Your services retrieved successfully.",
       data: result,
+      
     });
   }
 );

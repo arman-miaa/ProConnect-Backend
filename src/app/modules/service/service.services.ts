@@ -6,6 +6,8 @@ import { Service } from "./service.model";
 import { IService } from "./service.interface";
 import AppError from "../../errorHelpers/AppError";
 import { deleteImageFromCLoudinary } from "../../config/cloudinary.config";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { serviceSearchableFields } from "./serviceSearchableFields";
 
 // 1. সার্ভিস তৈরি (বিক্রেতা কর্তৃক)
 const createService = async (
@@ -24,44 +26,52 @@ const createService = async (
 export const getMyServices = async (filters: any, sellerId?: string) => {
   const query: any = { ...filters };
   if (sellerId) {
-    query.seller = sellerId;
+    query.sellerId = sellerId;
   }
 
   const services = await Service.find(query);
   return services;
 };
 
-// 2. সার্ভিস তালিকা দেখা (সমস্ত ব্যবহারকারী)
-const getAllServices = async (query: any) => {
-  const { category, search, minPrice, maxPrice, ...filters } = query;
-  const filter: any = { isDeleted: false, status: "LIVE" };
 
-  if (category) {
-    filter.category = category;
-  }
-  if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
-  }
-  if (search) {
-    // দ্রুত খোঁজার জন্য text index ব্যবহার
-    filter.$text = { $search: search };
-  }
+const getAllServices = async (query: Record<string, any>) => {
+  // Step 1: start query with default filters
+  const baseQuery = Service.find({ status: "LIVE", isDeleted: false });
 
-  // সেলারের নাম ও রেটিং পপুলেট করা হলো
-  const services = await Service.find(filter).populate(
+  // Step 2: build query with QueryBuilder
+  const qb = new QueryBuilder(baseQuery, query);
+
+  const builtQuery = qb
+    .filter()
+    .search(serviceSearchableFields)
+    .sort()
+    .fields()
+    .paginate()
+    .build();
+
+  // Step 3: populate seller info
+  const populatedQuery = builtQuery.populate(
     "sellerId",
     "name profilePicture averageRating"
   );
-  return services;
+
+  // Step 4: execute query + meta
+  const [data, meta] = await Promise.all([populatedQuery, qb.getMeta()]);
+
+  return { data, meta };
 };
+
+
+
+
+
 
 
 
 
 // 3. একটি নির্দিষ্ট সার্ভিস দেখা
 const getServiceById = async (id: string) => {
+
   const service = await Service.findById(id).populate(
     "sellerId",
     "name email profilePicture averageRating bio"
@@ -122,11 +132,7 @@ const deleteService = async (serviceId: string, sellerId: string) => {
   }
 
   // সফট ডিলেট: isDeleted: true এবং স্ট্যাটাস PAUSED করা হলো
-  const result = await Service.findByIdAndUpdate(
-    serviceId,
-    { isDeleted: true, status: "PAUSED" },
-    { new: true }
-  );
+  const result = await Service.findByIdAndDelete(serviceId);
   return result;
 };
 

@@ -31,7 +31,7 @@ const createService = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter
     });
 }));
 const getMyServices = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const sellerId = req.user.id;
+    const sellerId = req.user.userId;
     const result = yield service_services_1.ServiceServices.getMyServices({}, sellerId);
     (0, sendResponse_1.sendResponse)(res, {
         statusCode: http_status_codes_1.default.OK,

@@ -80,20 +80,6 @@ const logout = (0, catchAsync_1.catchAsync)((req, res, next) => __awaiter(void 0
         data: null,
     });
 }));
-// const resetPassword = catchAsync(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     const newPassword = req.body.newPassword;
-//     const oldPassword = req.body.oldPassword;
-//     const decodedToken = req.user;
-//     await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
-//     sendResponse(res, {
-//       statusCode: httpStatus.OK,
-//       success: true,
-//       message: "Password chenged successfully",
-//       data: null,
-//     });
-//   }
-// );
 const getMe = (0, catchAsync_1.catchAsync)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const decodedToken = req.user;
     const result = yield auth_service_1.AuthServices.getMe(decodedToken);
