@@ -23,5 +23,4 @@ var ServiceCategory;
     ServiceCategory["CYBER_SECURITY"] = "Cyber Security";
     ServiceCategory["MOBILE_DEVELOPMENT"] = "Mobile App Development";
     ServiceCategory["DATA_SCIENCE"] = "Data Science & AI";
-    // ⚠️ আপনি যদি ভবিষ্যতে বাড়াতে চান, তবে এখানে যোগ করুন
 })(ServiceCategory || (exports.ServiceCategory = ServiceCategory = {}));
