@@ -116,7 +116,18 @@ const getDashboardStats = catchAsync(async (req, res) => {
           $sum: { $cond: [{ $eq: ["$orderStatus", "COMPLETED"] }, 1, 0] },
         },
         cancelled: {
-          $sum: { $cond: [{ $eq: ["$orderStatus", "CANCELLED"] }, 1, 0] },
+          $sum: {
+            $cond: [
+              {
+                $in: [
+                  "$orderStatus",
+                  [OrderStatus.CANCELLED, OrderStatus.REFUNDED],
+                ],
+              },
+              1,
+              0,
+            ],
+          },
         },
         pending: {
           $sum: { $cond: [{ $eq: ["$orderStatus", "PENDING"] }, 1, 0] },
